@@ -11,11 +11,13 @@ this open is the whole pipeline: newsband.in's sitemap -> scrape -> render -> ha
 Instagram. The strip at the top of the page shows what it is doing and can pause it.
 """
 
+import hmac
 import json
 import os
 import re
 import threading
 import time
+from urllib.parse import urlsplit
 
 from flask import (Flask, abort, flash, jsonify, redirect, render_template, request,
                    send_from_directory, url_for)
@@ -29,6 +31,35 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("NB_SECRET", "newsband-local-dashboard")
 
 URL_RE = re.compile(r"https?://\S+")
+
+
+# ------------------------------------------------------------------ login ----
+# On the office LAN the dashboard had no login. On the public server (automation.newsband.in,
+# see deploy/) anyone who found the URL could publish to the paper's Instagram or delete posts,
+# so NB_DASH_PASSWORD turns on HTTP Basic auth for every route; wsgi.py refuses to start
+# without it. Unset (the Windows PC) = no login, exactly as before.
+DASH_USER = os.environ.get("NB_DASH_USER", "newsband")
+DASH_PASSWORD = os.environ.get("NB_DASH_PASSWORD", "")
+
+
+@app.before_request
+def require_login():
+    if not DASH_PASSWORD:
+        return None
+    auth = request.authorization
+    ok = (auth is not None and auth.type == "basic"
+          and hmac.compare_digest((auth.username or "").encode(), DASH_USER.encode())
+          and hmac.compare_digest((auth.password or "").encode(), DASH_PASSWORD.encode()))
+    if not ok:
+        return app.response_class("Login required.", 401,
+                                  {"WWW-Authenticate": 'Basic realm="Newsband automation"'})
+    # The browser re-sends Basic credentials on *any* request to this host, including a form
+    # another site submits - so a POST must come from our own pages (CSRF guard).
+    if request.method == "POST":
+        origin = request.headers.get("Origin")
+        if origin and urlsplit(origin).netloc != request.host:
+            abort(403)
+    return None
 
 
 @app.route("/", methods=["GET"])
@@ -374,6 +405,27 @@ def start_autopilot():
     return opts
 
 
+_background_started = False
+
+
+def start_background():
+    """Start the autopilot + publish-queue threads. Exactly once per process, and only in the
+    process that serves requests: the dev server's reloader child (below) or the single
+    gunicorn worker (wsgi.py). Two copies would race over seen_urls.json and double-post."""
+    global _background_started
+    if _background_started:
+        return None
+    _background_started = True
+    os.makedirs(OUT_DIR, exist_ok=True)
+    autopilot.QUEUE = autopilot_enqueue   # Create & post feeds the dashboard's publish queue
+    opts = start_autopilot()
+    requeue_from_sidecars()   # manual publishes still waiting when the last process died
+    print(f"  autopilot: polling every {opts.interval // 60} min, "
+          f"{'auto-posting to Instagram' if opts.post else 'generating posts only'}"
+          f"{'' if autopilot.ENABLED.is_set() else ' (PAUSED)'}\n", flush=True)
+    return opts
+
+
 @app.route("/autopilot/status")
 def autopilot_status():
     """Live state for the strip at the top of the page (polled by the browser)."""
@@ -518,12 +570,7 @@ if __name__ == "__main__":
     else:
         # Only in the reloader's child: the parent just watches files, and two autopilot loops
         # would race each other over seen_urls.json and publish the same article twice.
-        autopilot.QUEUE = autopilot_enqueue   # Create & post feeds the dashboard's publish queue
-        _opts = start_autopilot()
-        requeue_from_sidecars()   # manual publishes still waiting when the last process died
-        print(f"  autopilot: polling every {_opts.interval // 60} min, "
-              f"{'auto-posting to Instagram' if _opts.post else 'generating posts only'}"
-              f"{'' if autopilot.ENABLED.is_set() else ' (PAUSED)'}\n", flush=True)
+        start_background()
     # host 0.0.0.0 = reachable from other machines on the network (no login - trusted LAN only)
     # use_reloader: picks up edits to make_post.py / scrape_post.py without a manual restart.
     # reloader_type="stat" (mtime polling), NOT the default watchdog: this PC has NTFS

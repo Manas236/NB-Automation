@@ -20,6 +20,7 @@ Owner pastes article links into a local Flask dashboard and downloads the finish
 | `autopilot_mode.json` | The dashboard's **mode switch**: `{"post": true}` = Create & post, `{"post": false}` = Create only. Written by `set_mode()`, read at startup by `app.autopilot_options()` — **a saved choice beats `NB_AUTOPOST`** in `.env`, which is only the default before the owner has ever picked a mode. Backs the `POSTING` event that `Options.post` reads live. |
 | `autopost_state.json` | Autopilot's per-day counters (`date`, `published`, `failed`, `generated`) so the daily publish cap survives a restart — and the Flask reloader restarts the thread on every code edit. Resets itself when the IST date changes. |
 | `seen_urls.json` | Poller state: article URLs already handled. Seeded on first run with everything then in the sitemap (so it never backfills); a URL is recorded even if its post *failed*, so one bad article can't wedge the loop. Delete it to re-seed from scratch. |
+| `wsgi.py` + `deploy/` | **Production on the website's Linux server, `automation.newsband.in` (added 2026-09-29).** `wsgi.py` = gunicorn entry (refuses to start without `NB_DASH_PASSWORD`, ProxyFix, calls `app.start_background()`); `deploy/` = systemd unit (gunicorn **1 worker**, 8 threads, 127.0.0.1:8001), nginx and Apache vhosts, `requirements-server.txt` (+gunicorn, CPU torch), `DEPLOY.md` step-by-step. See Server deployment below. |
 | `README.md` | User-facing setup/usage doc (dashboard, CLI, batch CSV, assets). Kept consistent with this file. |
 | `assets/BG.jpg` | 1080×1440 background supplied by the owner: **white top ~600px, textured red below**. Used as-is — the white margins around the top of the photo are intentional. (Do NOT paint the top red; that was tried and rejected.) |
 | `assets/logo.png` | Real "newsband" wordmark (transparent PNG). Placed inside the white pill. |
@@ -54,6 +55,15 @@ Owner pastes article links into a local Flask dashboard and downloads the finish
 - The reloader must stay `reloader_type="stat"` (mtime polling). The default watchdog reloader is unusable on this PC: NTFS last-access-time updates are enabled (`fsutil behavior query disablelastaccess` → 2), so merely *importing* a module fires a "modified" event, and every lazy import (hashtags.py, torch/spaCy on the first `/generate`) restarted the server mid-request → `ERR_CONNECTION_RESET` in the browser (2026-09-17). `exclude_patterns` is not a fix: the project's own files trigger it too.
 - Dashboard binds to 0.0.0.0:5000 (owner uses it from other PCs on the LAN; this PC is 192.168.1.45). No auth. `allow_firewall.bat` (run as admin) removes a pre-existing Windows Firewall *block* rule for python.exe on the Private profile and allows TCP 5000 — Claude cannot elevate, the owner must run it. `start_dashboard.bat` launches the server.
 - Keep `make_post.py` importable (no side effects at import); both `scrape_post.py` and `app.py` import from it.
+
+## Server deployment (`automation.newsband.in`) — prepared 2026-09-29
+
+The owner chose to run the dashboard + autopilot on the Linux server that hosts newsband.in, publicly at `automation.newsband.in` (their decision; the old "LAN-only" rule was about image hosting via tunnels and still stands for *that*). Load-bearing points:
+- **Login**: `NB_DASH_PASSWORD` (+ `NB_DASH_USER`, default `newsband`) turns on HTTP Basic auth for every route via `app.require_login()`; POSTs with a foreign `Origin` get 403 (CSRF — Basic creds are resent automatically). Unset = no login (the Windows PC). `wsgi.py` exits if it's unset.
+- **Background threads start via `app.start_background()`** (once per process): the dev server calls it in the reloader child, `wsgi.py` at import. Under gunicorn `WERKZEUG_RUN_MAIN` is never set, so the old inline start would have silently run no autopilot.
+- **gunicorn must stay `--workers 1`, no `--preload`, no `--max-requests`** — the queue/autopilot/STATUS are in-process memory; a second worker = double posts and two pacing clocks.
+- **Only one autopilot anywhere**: once the server runs, the PC dashboard must be off or `NB_AUTOPILOT=0` (and never resumed). Sidecar-derived pacing does not span machines. Migration copies `seen_urls.json`, `meta/`, `output/`, `autopilot_mode.json`, `autopost_state.json`.
+- Cloudflare proxies the subdomain → requests are cut at 100 s; a long multi-link `/generate` may 524 but still completes server-side.
 
 ## Retention policy for `downloads/` and `output/`
 
@@ -148,6 +158,7 @@ Rules that follow from it:
 
 ## History
 
+- 2026-09-29: **Server deployment files** — `wsgi.py`, `deploy/` (systemd/gunicorn, nginx, Apache, DEPLOY.md), dashboard login + CSRF guard, `start_background()`. Tested with the Flask test client (401/200/403, PC mode unchanged, wsgi refuses without password); gunicorn itself not runnable on Windows, so untested until the server.
 - 2026-09-26: **Create & post now feeds the publish queue.** The owner reported that auto-posting only sent the first one or two stories: the autopilot published one, held the rest for its own 30-min slot and released one per 15-min poll, and posts still held at midnight fell out of `pending_posts()`'s today-only window. Now every rendered post goes into the dashboard queue (2–3 min apart), `MAX_PER_POLL` 3 → 10, day counters via locked `bump_day()`, cap counts queued posts, and Pause/Create-only/Cancel keep working. Verified with mocks in an isolated copy: 6 stories queued and sent in order at floor+jitter spacing, cap 4 of 14 respected, pause → re-queue on resume, a cancelled post stays out.
 - 2026-09-24: **Intro = headline fix.** Bodies that open with the headline + byline gave the headline as the first line and hid the dateline. Stripped in `article_body()`, guarded in `article_intro()`. Across the sitemap: 5 fixed, 11 unchanged, 13 unreachable (site timing out). Backfilled intro/dateline/hashtags of 4 unpublished sidecars; `maharashtra-to-issue-drought-notification-in-three-days` had already gone out with the headline as caption and was left alone.
 - 2026-09-22 (later still): **Hashtag fix #2 — catalogue taxonomy** (`tags.yaml` only):

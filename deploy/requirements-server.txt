@@ -1,0 +1,7 @@
+# Linux server install (see DEPLOY.md). Install CPU-only torch FIRST, or pip pulls the
+# multi-GB CUDA build:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+#   pip install -r deploy/requirements-server.txt
+#   python -m spacy download en_core_web_sm
+-r ../requirements.txt
+gunicorn>=22.0

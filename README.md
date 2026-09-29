@@ -129,3 +129,7 @@ Make a CSV with columns `image,headline,out,focus` (only the first two are requi
 
 ## Tweaking the layout
 All positions, sizes and colours are constants at the top of `make_post.py`.
+
+## Running on the website server
+
+To run the dashboard and autopilot on the newsband.in server at `automation.newsband.in`, with a login, see [deploy/DEPLOY.md](deploy/DEPLOY.md).

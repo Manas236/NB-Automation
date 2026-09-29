@@ -1,0 +1,34 @@
+# systemd unit for the Newsband automation dashboard + autopilot.
+# Install:  sudo cp deploy/nb-automation.service /etc/systemd/system/
+#           sudo systemctl daemon-reload && sudo systemctl enable --now nb-automation
+# Assumes the repo is at /opt/nb-automation, owned by the user "nbauto" (see DEPLOY.md).
+
+[Unit]
+Description=Newsband automation (Instagram post generator + autopilot)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=nbauto
+Group=nbauto
+WorkingDirectory=/opt/nb-automation
+# .env is also read by the app itself (python-dotenv); nothing else needed here.
+Environment=PYTHONUNBUFFERED=1
+# --workers 1 is load-bearing: the autopilot and the publish queue live in the worker's memory,
+#   and a second worker = a second autopilot = double posts.
+# --threads 8: page loads, status polling and a long /generate can run side by side.
+# --timeout 600: /generate renders several articles in one request.
+# No --max-requests / --preload: either would restart or fork the worker and kill the autopilot.
+ExecStart=/opt/nb-automation/venv/bin/gunicorn wsgi:app \
+    --workers 1 --threads 8 --timeout 600 --graceful-timeout 60 \
+    --bind 127.0.0.1:8001 \
+    --access-logfile - --error-logfile -
+Restart=always
+RestartSec=10
+# The hashtag models (torch + spaCy) need ~1-1.5 GB. Cap it so a runaway can't starve the website.
+MemoryMax=2500M
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
