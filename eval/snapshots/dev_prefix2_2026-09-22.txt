@@ -1,0 +1,92 @@
+running 18 article(s) [dev] ...
+
+--- per article ------------------------------------------------------------
+
+1-235-students-give-shape-to-imagination-through-words
+   tags    : #Education #Festival #Dombivli #ShrikantShinde #Kalyan
+   FORBID  : festival shrikantshinde
+
+175-kg-of-banned-mangur-fish-seized-in-bhiwandi-fir-register
+   tags    : #Bhiwandi #Crime #Thane #BannedMangurFish
+
+birthday-sword-reel-triggers-police-action
+   tags    : #Police #Festival #Crime #Maharashtra #NaviMumbaiPolice
+   MISSED  : turbhe
+   FORBID  : festival maharashtra
+
+bmc-frames-policy-to-regulate-commercial-sports-turfs-on-civ
+   tags    : #BMC #Sports #Business #Mumbai #CivicLand
+
+firefighters-rescue-five-year-old-boy-trapped-in-kharghar-li
+   tags    : #Fire #Kharghar #Crime #Wildlife
+   MISSED  : firebrigade
+   FORBID  : crime fire wildlife
+
+gita-lessons-mark-the-golden-jubilee-of-vashi-cha-chintamani
+   tags    : #Vashi #Festival #EcoFriendly #GoldenJubilee #GitaLessons
+   MISSED  : ganeshotsav
+
+karan-johar-locks-2028-release-for-r-n-kao-biopic
+   tags    : #Culture #Bollywood #KaranJohar #RNKao
+
+man-killed-after-cigarette-row
+   tags    : #Crime #Ulhasnagar #CigaretteRow #Police
+
+murder-in-subhash-tekdi-solved-with-cctv-footage-five-arrest
+   tags    : #Crime #Ulhasnagar #ThanePolice #CCTV
+
+nmmc-oversees-the-immersion-of-14-318-ganesh-idols-and-2-230
+   tags    : #NMMC #Festival #Fire #NaviMumbai #GauriIdols
+   MISSED  : ganeshotsav
+   FORBID  : fire
+
+pisavali-zp-school-repair-drags-on-students-suffer-in-monsoo
+   tags    : #Education #Monsoon #Kalyan
+   MISSED  : pisavali
+
+praggnanandhaa-gukesh-guide-india-to-win-over-netherlands-at
+   tags    : #Sports #Praggnanandhaa
+   MISSED  : chess india
+
+safety-must-remain-a-top-priority-while-working-says-msedcl
+   tags    : #MSEDCL #Maharashtra #Electricity #Infrastructure #TopPriority
+   FORBID  : toppriority
+
+shivshahi-driver-assaulted-four-flee
+   tags    : #Crime #MSRTC #NaviMumbai #NaviMumbaiPolice #ShivshahiDriver
+   FORBID  : shivshahidriver
+
+six-year-old-arch-collapses-in-ambernath-inquiry-ordered
+   tags    : #Ambernath #Temple #Traffic #Inquiry
+   MISSED  : civicissues
+   FORBID  : temple
+
+sofa-factory-gutted-in-massive-digha-fire-workers-escape-saf
+   tags    : #Fire #Crime
+   MISSED  : digha
+   FORBID  : crime
+
+trump-signs-russia-sanctions-law-warns-oil-buyers-of-tariffs
+   tags    : #DonaldTrump #OilBuyers
+   MISSED  : business india russia
+   FORBID  : oilbuyers
+
+where-is-the-road
+   tags    : #Roads #Ambernath #Transport #Maharashtra #CivicIssues
+
+--- summary ----------------------------------------------------------------
+articles          : 18 in split, 18 labelled
+must-recall       :  70.0%  (28/40)
+forbidden emitted : 13
+precision (judged):  82.2%  (60/73)
+clean articles    :  33.3%  (6/18)
+unjudged tags     : 0  <- label these to make the number mean more
+tags per article  : 4.06
+
+--- vs baseline ------------------------------------------------------------
+2 of 18 article(s) changed
+  nmmc-oversees-the-immersion-of-14-318-ganesh-idols-and-2
+    + navimumbai
+    - ganesh
+  sofa-factory-gutted-in-massive-digha-fire-workers-escape
+    - sofa

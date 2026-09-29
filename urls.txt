@@ -1,0 +1,2 @@
+# one article URL per line, lines starting with # are ignored
+https://www.newsband.in/article_detail/pratap-sarnaik-cracks-whip-on-stalled-slum-redevelopment-projects-in-ovala-majivada

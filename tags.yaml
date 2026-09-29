@@ -1,0 +1,413 @@
+# Tag catalogue for hashtags.py - the ONLY editorial knowledge in the hashtag system.
+#
+# One entry per hashtag. An entry lists the surface forms that EARN the tag; there are
+# no inference edges between entries (Thane never implies #TMC, a politician never
+# implies a party). The single exception is `parent`, which may only GENERALISE
+# (#SlumRedevelopment -> #CivicIssues is safe: if the child is true so is the parent).
+#
+# Entry fields
+#   tag            canonical hashtag, e.g. "#TMC"
+#   type           person | org | place | topic
+#   aliases        exact surface forms (case-insensitive unless the alias is an acronym)
+#   weak_aliases   ambiguous surface forms (a bare surname) - only count as weak evidence
+#   triggers       topic entries: phrases that are explicit evidence for the topic
+#   weak_triggers  topic entries: single ambiguous words ("shot", "fire") - only count
+#                  when the semantic similarity for that topic also agrees
+#   description    topic entries: one line used for semantic retrieval (embedding)
+#   parent         a more general tag to back off to under weak evidence
+#   role           civic_body | police  - makes the entry a resolution target for
+#                  descriptive references ("the civic body", "police"), see `descriptive`
+#   sensitive      true on crime, accident and fire topics: when such a topic has explicit evidence,
+#                  unknown (non-catalogue) PERSON names are never tagged
+#
+# `config.category_map` turns the site's editorial category into a WEAK boost for the
+# listed tags. Labels not in the map (incl. "Trending" and blank) give no signal.
+
+config:
+  pad_to_five: false            # true: fill up to 5 with brand_tags when fewer clear the floor
+  brand_tags: ["#Newsband"]     # always-true tags used only for padding (never scored)
+
+  category_map:
+    "Law & Crime":       ["#Crime"]
+    "Civic & Politics":  ["#CivicIssues", "#Politics"]
+    "Entertainment":     ["#Entertainment", "#Bollywood"]
+    "Youth & Education": ["#Education"]
+    "Art & Culture":     ["#Culture"]
+    "Business":          ["#Business"]
+    "Sports":            ["#Sports"]
+    "Environment":       ["#Environment"]
+    "Health":            ["#Health"]
+    "Technology":        ["#Technology"]
+
+  # Descriptive references. Resolution order (first that applies):
+  #   1. exactly one entry with the matching `role` is explicitly named in the article
+  #   2. the dateline place is in `by_place`
+  #   3. otherwise the `generic` tag (or, for `fixed`, always that tag)
+  descriptive:
+    civic_body:
+      phrases: ["civic body", "the corporation", "civic administration", "civic officials",
+                "civic chief", "civic authorities", "municipal administration",
+                "municipal corporation", "municipal commissioner", "civic commissioner",
+                "the civic body's", "corporation officials"]
+      role: civic_body
+      generic: "#CivicIssues"
+      by_place:
+        Thane: "#TMC"
+        Kalwa: "#TMC"
+        Mumbra: "#TMC"
+        Diva: "#TMC"
+        Kalyan: "#KDMC"
+        Dombivli: "#KDMC"
+        Titwala: "#KDMC"
+        Navi Mumbai: "#NMMC"
+        Vashi: "#NMMC"
+        Nerul: "#NMMC"
+        Belapur: "#NMMC"
+        Airoli: "#NMMC"
+        Ghansoli: "#NMMC"
+        Koparkhairane: "#NMMC"
+        Sanpada: "#NMMC"
+        Turbhe: "#NMMC"
+        Seawoods: "#NMMC"
+        Mumbai: "#BMC"
+        Mira Road: "#MBMC"
+        Bhayandar: "#MBMC"
+        Ulhasnagar: "#UMC"
+        Bhiwandi: "#BNMC"
+        Vasai: "#VVCMC"
+        Virar: "#VVCMC"
+        Nalasopara: "#VVCMC"
+        Panvel: "#PanvelMC"
+    police:
+      phrases: ["police", "the cops", "police station", "police officials", "police personnel"]
+      role: police
+      generic: "#Police"
+      by_place:   # commissionerate jurisdictions
+        Thane: "#ThanePolice"
+        Kalwa: "#ThanePolice"
+        Mumbra: "#ThanePolice"
+        Diva: "#ThanePolice"
+        Kalyan: "#ThanePolice"
+        Dombivli: "#ThanePolice"
+        Ulhasnagar: "#ThanePolice"
+        Ambernath: "#ThanePolice"
+        Badlapur: "#ThanePolice"
+        Bhiwandi: "#ThanePolice"
+        Navi Mumbai: "#NaviMumbaiPolice"
+        Vashi: "#NaviMumbaiPolice"
+        Nerul: "#NaviMumbaiPolice"
+        Belapur: "#NaviMumbaiPolice"
+        Airoli: "#NaviMumbaiPolice"
+        Kharghar: "#NaviMumbaiPolice"
+        Panvel: "#NaviMumbaiPolice"
+        Uran: "#NaviMumbaiPolice"
+        Mumbai: "#MumbaiPolice"
+        Mira Road: "#MBVVPolice"
+        Bhayandar: "#MBVVPolice"
+        Vasai: "#MBVVPolice"
+        Virar: "#MBVVPolice"
+        Nalasopara: "#MBVVPolice"
+    state_govt:
+      phrases: ["state government", "maharashtra government", "state govt", "mahayuti government"]
+      fixed: "#MaharashtraGovt"
+
+tags:
+  # ---------------------------------------------------------------- places
+  - {tag: "#Thane",        type: place, aliases: ["Thane"]}
+  - {tag: "#NaviMumbai",   type: place, aliases: ["Navi Mumbai", "Navi-Mumbai"]}
+  - {tag: "#Mumbai",       type: place, aliases: ["Mumbai"]}
+  - {tag: "#Kalyan",       type: place, aliases: ["Kalyan"]}
+  - {tag: "#Dombivli",     type: place, aliases: ["Dombivli", "Dombivali"]}
+  - {tag: "#Ulhasnagar",   type: place, aliases: ["Ulhasnagar"]}
+  - {tag: "#Ambernath",    type: place, aliases: ["Ambernath"]}
+  - {tag: "#Badlapur",     type: place, aliases: ["Badlapur"]}
+  - {tag: "#Bhiwandi",     type: place, aliases: ["Bhiwandi", "Bhivandi"]}
+  - {tag: "#MiraRoad",     type: place, aliases: ["Mira Road"]}
+  - {tag: "#Bhayandar",    type: place, aliases: ["Bhayandar", "Bhayander"]}
+  - {tag: "#Vasai",        type: place, aliases: ["Vasai"]}
+  - {tag: "#Virar",        type: place, aliases: ["Virar"]}
+  - {tag: "#Nalasopara",   type: place, aliases: ["Nalasopara", "Nala Sopara"]}
+  - {tag: "#Panvel",       type: place, aliases: ["Panvel"]}
+  - {tag: "#Uran",         type: place, aliases: ["Uran"]}
+  - {tag: "#Kharghar",     type: place, aliases: ["Kharghar"]}
+  - {tag: "#Vashi",        type: place, aliases: ["Vashi"],         parent: "#NaviMumbai"}
+  - {tag: "#Nerul",        type: place, aliases: ["Nerul"],         parent: "#NaviMumbai"}
+  - {tag: "#Belapur",      type: place, aliases: ["Belapur", "CBD Belapur"], parent: "#NaviMumbai"}
+  - {tag: "#Airoli",       type: place, aliases: ["Airoli"],        parent: "#NaviMumbai"}
+  - {tag: "#Ghansoli",     type: place, aliases: ["Ghansoli"],      parent: "#NaviMumbai"}
+  - {tag: "#Koparkhairane",type: place, aliases: ["Koparkhairane", "Kopar Khairane"], parent: "#NaviMumbai"}
+  - {tag: "#Sanpada",      type: place, aliases: ["Sanpada"],       parent: "#NaviMumbai"}
+  - {tag: "#Seawoods",     type: place, aliases: ["Seawoods"],      parent: "#NaviMumbai"}
+  - {tag: "#Mumbra",       type: place, aliases: ["Mumbra"],        parent: "#Thane"}
+  - {tag: "#Kalwa",        type: place, aliases: ["Kalwa"],         parent: "#Thane"}
+  - {tag: "#Diva",         type: place, aliases: ["Diva"],          parent: "#Thane"}
+  - {tag: "#Titwala",      type: place, aliases: ["Titwala"],       parent: "#Kalyan"}
+  - {tag: "#Murbad",       type: place, aliases: ["Murbad"]}
+  - {tag: "#Shahapur",     type: place, aliases: ["Shahapur"]}
+  - {tag: "#Palghar",      type: place, aliases: ["Palghar"]}
+  - {tag: "#Raigad",       type: place, aliases: ["Raigad"]}
+  - {tag: "#Alibaug",      type: place, aliases: ["Alibaug", "Alibag"], parent: "#Raigad"}
+  - {tag: "#Karjat",       type: place, aliases: ["Karjat"]}
+  - {tag: "#Pune",         type: place, aliases: ["Pune"]}
+  - {tag: "#Nashik",       type: place, aliases: ["Nashik"]}
+  - {tag: "#Maharashtra",  type: place, aliases: ["Maharashtra"]}
+
+  # ---------------------------------------------------------------- civic bodies / authorities
+  - {tag: "#TMC",   type: org, role: civic_body, parent: "#CivicIssues",
+     aliases: ["Thane Municipal Corporation", "TMC", "Thane civic body", "Thane Mahanagarpalika"]}
+  - {tag: "#KDMC",  type: org, role: civic_body, parent: "#CivicIssues",
+     aliases: ["Kalyan Dombivli Municipal Corporation", "Kalyan-Dombivli Municipal Corporation", "KDMC", "Kalyan Dombivli civic body"]}
+  - {tag: "#NMMC",  type: org, role: civic_body, parent: "#CivicIssues",
+     aliases: ["Navi Mumbai Municipal Corporation", "NMMC", "Navi Mumbai civic body"]}
+  - {tag: "#BMC",   type: org, role: civic_body, parent: "#CivicIssues",
+     aliases: ["Brihanmumbai Municipal Corporation", "BMC", "Mumbai civic body"]}
+  - {tag: "#MBMC",  type: org, role: civic_body, parent: "#CivicIssues",
+     aliases: ["Mira Bhayandar Municipal Corporation", "Mira-Bhayandar Municipal Corporation", "MBMC"]}
+  - {tag: "#UMC",   type: org, role: civic_body, parent: "#CivicIssues",
+     aliases: ["Ulhasnagar Municipal Corporation", "UMC"]}
+  - {tag: "#BNMC",  type: org, role: civic_body, parent: "#CivicIssues",
+     aliases: ["Bhiwandi Nizampur Municipal Corporation", "Bhiwandi-Nizampur Municipal Corporation", "BNMC"]}
+  - {tag: "#VVCMC", type: org, role: civic_body, parent: "#CivicIssues",
+     aliases: ["Vasai Virar City Municipal Corporation", "Vasai-Virar Municipal Corporation", "VVCMC", "VVMC"]}
+  - {tag: "#PanvelMC", type: org, role: civic_body, parent: "#CivicIssues",
+     aliases: ["Panvel Municipal Corporation", "PMC"]}
+  - {tag: "#CIDCO",  type: org, parent: "#Infrastructure", aliases: ["CIDCO", "City and Industrial Development Corporation"]}
+  - {tag: "#MMRDA",  type: org, parent: "#Infrastructure", aliases: ["MMRDA", "Mumbai Metropolitan Region Development Authority"]}
+  - {tag: "#MSRDC",  type: org, parent: "#Infrastructure", aliases: ["MSRDC", "Maharashtra State Road Development Corporation"]}
+  - {tag: "#MHADA",  type: org, parent: "#Housing", aliases: ["MHADA", "Maharashtra Housing and Area Development Authority"]}
+  - {tag: "#SRA",    type: org, parent: "#SlumRedevelopment", aliases: ["Slum Rehabilitation Authority", "SRA"]}
+  - {tag: "#MSRTC",  type: org, parent: "#Transport", aliases: ["MSRTC", "ST bus", "ST buses", "state transport"]}
+  - {tag: "#MSEDCL", type: org, parent: "#Electricity", aliases: ["MSEDCL", "Mahavitaran"]}
+  - {tag: "#NMMT",   type: org, parent: "#Transport", aliases: ["NMMT", "Navi Mumbai Municipal Transport"]}
+  - {tag: "#TMT",    type: org, parent: "#Transport", aliases: ["TMT", "Thane Municipal Transport"]}
+  - {tag: "#CentralRailway", type: org, parent: "#Railways", aliases: ["Central Railway", "CR"]}
+  - {tag: "#WesternRailway", type: org, parent: "#Railways", aliases: ["Western Railway", "WR"]}
+  - {tag: "#MumbaiMetro",    type: org, parent: "#Metro", aliases: ["Mumbai Metro", "MMRC", "Metro Line", "Metro line 4", "Metro 4"]}
+  - {tag: "#MaharashtraGovt", type: org, parent: "#Politics", aliases: ["Maharashtra government", "Government of Maharashtra", "Mantralaya"]}
+  - {tag: "#MPCB",   type: org, parent: "#Pollution", aliases: ["MPCB", "Maharashtra Pollution Control Board"]}
+  - {tag: "#BombayHighCourt", type: org, parent: "#Court", aliases: ["Bombay High Court", "High Court", "HC"]}
+  - {tag: "#SupremeCourt",    type: org, parent: "#Court", aliases: ["Supreme Court", "SC"]}
+
+  # ---------------------------------------------------------------- police
+  - {tag: "#ThanePolice", type: org, role: police, parent: "#Police",
+     aliases: ["Thane police", "Thane City Police", "Thane Police Commissionerate", "Thane Crime Branch", "Thane Rural Police"]}
+  - {tag: "#NaviMumbaiPolice", type: org, role: police, parent: "#Police",
+     aliases: ["Navi Mumbai police", "Navi Mumbai Police Commissionerate", "Navi Mumbai Crime Branch"]}
+  - {tag: "#MumbaiPolice", type: org, role: police, parent: "#Police",
+     aliases: ["Mumbai police", "Mumbai Crime Branch"]}
+  - {tag: "#MBVVPolice", type: org, role: police, parent: "#Police",
+     aliases: ["MBVV police", "Mira Bhayandar Vasai Virar police", "Mira-Bhayandar police", "Vasai Virar police"]}
+  - {tag: "#RailwayPolice", type: org, role: police, parent: "#Police",
+     aliases: ["GRP", "Railway Police", "RPF", "Railway Protection Force"]}
+
+  # ---------------------------------------------------------------- parties
+  - {tag: "#BJP",        type: org, parent: "#Politics", aliases: ["BJP", "Bharatiya Janata Party"]}
+  - {tag: "#ShivSena",   type: org, parent: "#Politics", aliases: ["Shiv Sena", "Shivsena", "Sena"]}
+  - {tag: "#ShivSenaUBT",type: org, parent: "#Politics", aliases: ["Shiv Sena (UBT)", "Shiv Sena UBT", "Sena (UBT)", "UBT"]}
+  - {tag: "#NCP",        type: org, parent: "#Politics", aliases: ["NCP", "Nationalist Congress Party"]}
+  - {tag: "#NCPSP",      type: org, parent: "#Politics", aliases: ["NCP (SP)", "NCP-SP", "NCP (Sharad Pawar)"]}
+  - {tag: "#Congress",   type: org, parent: "#Politics", aliases: ["Congress", "Indian National Congress"]}
+  - {tag: "#MNS",        type: org, parent: "#Politics", aliases: ["MNS", "Maharashtra Navnirman Sena"]}
+
+  # ---------------------------------------------------------------- public figures
+  - {tag: "#EknathShinde",     type: person, parent: "#Politics", aliases: ["Eknath Shinde"]}
+  - {tag: "#DevendraFadnavis", type: person, parent: "#Politics", aliases: ["Devendra Fadnavis"], weak_aliases: ["Fadnavis"]}
+  - {tag: "#AjitPawar",        type: person, parent: "#Politics", aliases: ["Ajit Pawar"]}
+  - {tag: "#SharadPawar",      type: person, parent: "#Politics", aliases: ["Sharad Pawar"]}
+  - {tag: "#UddhavThackeray",  type: person, parent: "#Politics", aliases: ["Uddhav Thackeray"]}
+  - {tag: "#RajThackeray",     type: person, parent: "#Politics", aliases: ["Raj Thackeray"]}
+  - {tag: "#AadityaThackeray", type: person, parent: "#Politics", aliases: ["Aaditya Thackeray", "Aditya Thackeray"]}
+  - {tag: "#PratapSarnaik",    type: person, parent: "#Politics", aliases: ["Pratap Sarnaik"], weak_aliases: ["Sarnaik"]}
+  - {tag: "#ShrikantShinde",   type: person, parent: "#Politics", aliases: ["Shrikant Shinde"]}
+  - {tag: "#RajanVichare",     type: person, parent: "#Politics", aliases: ["Rajan Vichare"], weak_aliases: ["Vichare"]}
+  - {tag: "#GaneshNaik",       type: person, parent: "#Politics", aliases: ["Ganesh Naik"]}
+  - {tag: "#SanjayKelkar",     type: person, parent: "#Politics", aliases: ["Sanjay Kelkar"], weak_aliases: ["Kelkar"]}
+  - {tag: "#NareshMhaske",     type: person, parent: "#Politics", aliases: ["Naresh Mhaske"], weak_aliases: ["Mhaske"]}
+  - {tag: "#RavindraChavan",   type: person, parent: "#Politics", aliases: ["Ravindra Chavan"]}
+  - {tag: "#JitendraAwhad",    type: person, parent: "#Politics", aliases: ["Jitendra Awhad"], weak_aliases: ["Awhad"]}
+  - {tag: "#KapilPatil",       type: person, parent: "#Politics", aliases: ["Kapil Patil"]}
+  - {tag: "#SurajChavan",      type: person, parent: "#Politics", aliases: ["Suraj Chavan"]}
+  - {tag: "#NarendraModi",     type: person, parent: "#Politics", aliases: ["Narendra Modi", "PM Modi"], weak_aliases: ["Modi"]}
+  - {tag: "#ManojJarange",     type: person, parent: "#MarathaReservation", aliases: ["Manoj Jarange", "Jarange Patil", "Manoj Jarange-Patil"], weak_aliases: ["Jarange"]}
+
+  # ---------------------------------------------------------------- generic parents (topic roots)
+  - {tag: "#CivicIssues", type: topic, triggers: ["civic issues", "civic works", "civic problems", "civic apathy"],
+     description: "Municipal and civic administration issues: corporation works, civic services, ward problems, local governance"}
+  - {tag: "#Politics", type: topic, triggers: ["political", "politics", "politician", "MLA", "MP", "corporator", "party workers"],
+     description: "Politics, political parties, leaders, elections, government decisions and political disputes"}
+  - {tag: "#Crime", type: topic, sensitive: true,
+     triggers: ["crime", "arrested", "FIR", "booked", "murder", "murdered", "killed", "stabbed", "shot dead", "opened fire", "firing", "assault", "assaulted", "molested", "robbery", "robbed", "theft", "stolen", "burglary", "extortion", "kidnapped", "abducted", "police case", "accused", "gang", "arrest", "criminal", "attacked", "gunned down", "shot at", "chain snatching", "cheated", "cheating case", "fraud"],
+     weak_triggers: ["shot", "attack", "case", "raid"],
+     description: "Crime news: murder, shooting, assault, theft, robbery, fraud, arrests, FIR, police investigation, accused, victims"}
+  - {tag: "#Police", type: topic, triggers: ["police investigation", "police probe", "police action", "cops"],
+     description: "Police action, investigations, arrests, police stations and law enforcement"}
+  - {tag: "#Entertainment", type: topic, triggers: ["entertainment", "celebrity", "celebrities", "film industry"],
+     description: "Entertainment news: films, actors, celebrities, television, music, shows and events"}
+  - {tag: "#Environment", type: topic, triggers: ["environment", "environmental", "green cover", "trees felled", "tree cutting", "wetland", "wetlands", "mangrove", "mangroves", "biodiversity", "climate"],
+     description: "Environment: green cover, trees, wetlands, mangroves, wildlife, pollution, climate and conservation"}
+  - {tag: "#Education", type: topic, triggers: ["education", "school", "schools", "students", "college", "colleges", "university", "exam", "exams", "teachers", "classroom", "syllabus", "scholarship"],
+     description: "Education: schools, colleges, students, teachers, exams, results, admissions and academic events"}
+  - {tag: "#Sports", type: topic, triggers: ["sports", "tournament", "championship", "championships", "athlete", "athletes", "medal", "medals", "gold medal", "silver medal", "bronze medal", "bronze", "stadium", "kabaddi", "kho-kho", "marathon", "Asian Games", "Olympics", "Olympic", "Commonwealth Games", "National Games", "weightlifting", "weightlifter", "wrestling", "wrestler", "powerlifting", "boxing", "boxer", "athletics", "swimming", "swimmer", "badminton", "chess", "table tennis", "hockey", "shooter", "archery", "sportsperson"],
+     weak_triggers: ["match", "meet", "games"],
+     description: "Sports: tournaments, matches, athletes, medals, teams, cricket, football, kabaddi, marathons"}
+  - {tag: "#Business", type: topic, triggers: ["business", "businesses", "startup", "startups", "investment", "investors", "economy", "revenue", "profit", "entrepreneur", "entrepreneurs", "MSME", "industrialists", "stock market", "share market"],
+     weak_triggers: ["company", "industry", "trade", "traders", "market"],
+     description: "Business and economy: companies, industry, trade, startups, markets, investment and finance"}
+  - {tag: "#Culture", type: topic, triggers: ["cultural", "culture", "art exhibition", "exhibition", "heritage", "folk", "dance", "theatre", "drama", "natak", "literature", "poetry"],
+     description: "Art and culture: exhibitions, heritage, dance, theatre, music, literature and cultural programmes"}
+  - {tag: "#Festival", type: topic, triggers: ["festival", "festive", "procession"],
+     description: "Festivals and celebrations: religious festivals, processions, pandals, community celebrations"}
+  - {tag: "#Infrastructure", type: topic, triggers: ["infrastructure", "flyover", "bridge", "highway", "expressway", "tunnel", "project work", "construction work", "corridor", "coastal road"],
+     description: "Infrastructure: roads, bridges, flyovers, highways, tunnels, metro, large public works and projects"}
+  - {tag: "#Transport", type: topic, triggers: ["buses", "bus service", "commuters", "auto rickshaw", "autorickshaw", "rickshaw", "rickshaws", "taxi", "public transport", "transport service"],
+     description: "Public transport and commuting: buses, autos, taxis, commuters, transport services"}
+  - {tag: "#Health", type: topic, triggers: ["health", "hospital", "hospitals", "doctors", "patients", "disease", "medical", "healthcare", "dengue", "malaria", "vaccination", "blood donation"],
+     description: "Health: hospitals, doctors, patients, diseases, outbreaks, medical camps and healthcare services"}
+  - {tag: "#Technology", type: topic, triggers: ["technology", "tech", "app", "digital", "AI", "artificial intelligence", "software", "IT"],
+     description: "Technology: apps, digital services, AI, software, IT industry and innovation"}
+  - {tag: "#Housing", type: topic, triggers: ["housing", "housing society", "housing societies", "flats", "flat owners", "society members"],
+     description: "Housing: housing societies, flats, buildings, residents, MHADA, redevelopment and real estate"}
+  - {tag: "#Court", type: topic, triggers: ["court", "hearing", "petition", "verdict", "judge", "bench", "tribunal", "sessions court", "magistrate", "bail"],
+     description: "Courts and legal proceedings: hearings, petitions, verdicts, judges, bail, tribunals"}
+  - {tag: "#Railways", type: topic, triggers: ["railway", "railways", "local train", "local trains", "train", "trains", "railway station", "suburban", "rail"],
+     description: "Railways: local trains, stations, rail services, delays, railway works and commuters"}
+
+  # ---------------------------------------------------------------- specific topics
+  - {tag: "#Bollywood", type: topic, parent: "#Entertainment",
+     triggers: ["Bollywood", "Hindi film", "Hindi cinema", "Bollywood actor", "Bollywood actress", "film star", "film shoot", "film shooting", "movie shoot"],
+     weak_triggers: ["actor", "actress", "film", "movie"],
+     description: "Bollywood and Hindi cinema: actors, actresses, films, film shoots, movie releases and stars"}
+  - {tag: "#MarathiCinema", type: topic, parent: "#Entertainment",
+     triggers: ["Marathi film", "Marathi cinema", "Marathi movie", "Marathi actor", "Marathi actress"],
+     description: "Marathi film industry: Marathi films, actors, releases and awards"}
+  - {tag: "#Television", type: topic, parent: "#Entertainment", triggers: ["TV show", "television", "TV serial", "serial", "reality show", "OTT", "web series"],
+     description: "Television and OTT: TV serials, reality shows, web series and streaming"}
+  - {tag: "#Music", type: topic, parent: "#Entertainment", triggers: ["concert", "singer", "singers", "musician", "music album", "song", "songs", "live music"],
+     description: "Music: concerts, singers, albums, songs and musical events"}
+  - {tag: "#Cricket", type: topic, parent: "#Sports", triggers: ["cricket", "cricketer", "IPL", "T20", "ODI", "Test match", "wicket", "batsman", "bowler"],
+     description: "Cricket: matches, tournaments, IPL, players, wickets, runs"}
+  - {tag: "#Football", type: topic, parent: "#Sports", triggers: ["football", "footballer", "ISL", "FIFA", "goal keeper", "striker"],
+     description: "Football matches, leagues, players and tournaments"}
+  - {tag: "#Ganeshotsav", type: topic, parent: "#Festival",
+     triggers: ["Ganeshotsav", "Ganesh Utsav", "Ganesh festival", "Ganpati", "Ganesha", "Ganesh idol", "Ganpati idol", "Ganesh mandal", "Ganesh mandals", "visarjan", "Ganesh Chaturthi", "Anant Chaturdashi", "Bappa", "pandal", "pandals", "Ganpati Bappa", "mandal", "mandals"],
+     description: "Ganesh festival: Ganpati idols, mandals, pandals, visarjan, Ganesh Chaturthi celebrations and devotees"}
+  - {tag: "#Navratri", type: topic, parent: "#Festival", triggers: ["Navratri", "Navaratri", "garba", "dandiya", "Durga Puja", "Dussehra", "Dasara"],
+     description: "Navratri festival: garba, dandiya, Durga puja, Dussehra celebrations"}
+  - {tag: "#Diwali", type: topic, parent: "#Festival", triggers: ["Diwali", "Deepavali", "firecrackers", "crackers"],
+     description: "Diwali festival: lights, firecrackers, celebrations, Diwali shopping"}
+  - {tag: "#Holi", type: topic, parent: "#Festival", triggers: ["Holi", "Rang Panchami", "Dhulivandan"],
+     description: "Holi festival of colours celebrations"}
+  - {tag: "#Eid", type: topic, parent: "#Festival", triggers: ["Eid", "Ramzan", "Ramadan", "Bakri Eid", "Eid-ul-Fitr"],
+     description: "Eid and Ramzan celebrations and prayers"}
+  - {tag: "#Christmas", type: topic, parent: "#Festival", triggers: ["Christmas", "Xmas", "New Year celebration"],
+     description: "Christmas and New Year celebrations"}
+  - {tag: "#Accident", type: topic, sensitive: true,
+     triggers: ["accident", "road accident", "mishap", "collision", "collided", "rammed", "ran over", "run over", "hit and run", "hit-and-run", "overturned", "crash", "crashed"],
+     description: "Accidents: road accidents, vehicle collisions, hit-and-run, mishaps, injuries and deaths"}
+  - {tag: "#Fire", type: topic, sensitive: true,
+     triggers: ["fire broke out", "blaze", "gutted", "caught fire", "major fire", "fire incident", "short circuit", "fire erupted", "flames", "engulfed", "charred"],
+     description: "Fire incidents: a fire breaking out, blaze, flames, a building, factory, shop or vehicle on fire, gutted, fire damage"}
+  - {tag: "#Drugs", type: topic, parent: "#Crime", sensitive: true,
+     triggers: ["drugs", "drug peddler", "drug peddlers", "narcotics", "NDPS", "ganja", "MD drugs", "mephedrone", "drug racket", "drug bust", "contraband", "anti-narcotics"],
+     description: "Drug crimes: narcotics seizures, drug peddlers, NDPS cases, anti-narcotics raids"}
+  - {tag: "#CyberCrime", type: topic, parent: "#Crime", sensitive: true,
+     triggers: ["cyber crime", "cybercrime", "cyber fraud", "online fraud", "digital arrest", "cyber police", "phishing", "online scam", "OTP fraud", "cyber cell"],
+     description: "Cyber crime: online fraud, digital arrest scams, phishing, cyber police cases"}
+  - {tag: "#Suicide", type: topic, parent: "#Crime", sensitive: true,
+     triggers: ["suicide", "ended life", "ended her life", "ended his life", "hanged himself", "hanged herself", "took his own life", "took her own life"],
+     description: "Suicide and self-harm cases"}
+  - {tag: "#WomenSafety", type: topic, parent: "#Crime", sensitive: true,
+     triggers: ["women's safety", "women safety", "molestation", "sexual harassment", "eve-teasing", "eve teasing", "rape", "raped", "sexual assault", "POCSO", "domestic violence", "dowry"],
+     description: "Crimes against women and girls: molestation, harassment, sexual assault, POCSO, domestic violence"}
+  - {tag: "#Traffic", type: topic, parent: "#Transport",
+     triggers: ["traffic", "traffic jam", "traffic jams", "traffic congestion", "traffic police", "traffic diversion", "traffic snarl", "traffic snarls", "bottleneck", "gridlock", "signal", "parking"],
+     description: "Traffic: jams, congestion, diversions, traffic police, parking and road closures"}
+  - {tag: "#Roads", type: topic, parent: "#CivicIssues",
+     triggers: ["potholes", "pothole", "road repair", "road work", "road works", "road condition", "bad roads", "concretisation", "concretization", "road widening", "resurfacing"],
+     weak_triggers: ["road", "roads"],
+     description: "Road conditions and works: potholes, repairs, concretisation, widening, bad roads"}
+  - {tag: "#WaterSupply", type: topic, parent: "#CivicIssues",
+     triggers: ["water supply", "water cut", "water cuts", "water shortage", "water crisis", "water pipeline", "drinking water", "contaminated water", "water tanker", "water tankers", "no water", "water woes"],
+     description: "Water supply problems: water cuts, shortage, pipelines, tankers, contaminated water"}
+  - {tag: "#Monsoon", type: topic, parent: "#CivicIssues",
+     triggers: ["monsoon", "heavy rain", "heavy rains", "rainfall", "waterlogging", "water-logging", "flooding", "flooded", "flood", "IMD", "red alert", "orange alert", "downpour", "cloudburst", "landslide"],
+     weak_triggers: ["rain", "rains"],
+     description: "Monsoon and rain: heavy rainfall, waterlogging, flooding, IMD alerts, landslides"}
+  - {tag: "#Garbage", type: topic, parent: "#CivicIssues",
+     triggers: ["garbage", "waste", "solid waste", "dumping ground", "dumping", "cleanliness", "sanitation", "sweeping", "litter", "debris", "waste management", "Swachh"],
+     description: "Garbage and waste: dumping grounds, waste management, cleanliness, sanitation drives"}
+  - {tag: "#Pollution", type: topic, parent: "#Environment",
+     triggers: ["pollution", "polluted", "air quality", "AQI", "smog", "effluent", "effluents", "chemical discharge", "noise pollution", "toxic"],
+     description: "Pollution: air quality, AQI, water pollution, industrial effluents, noise, toxic discharge"}
+  - {tag: "#Wildlife", type: topic, parent: "#Environment",
+     triggers: ["wildlife", "leopard", "leopards", "forest department", "snake", "snakes", "crocodile", "flamingos", "flamingo", "birds", "bird", "SGNP", "national park", "sanctuary"],
+     description: "Wildlife: leopards, snakes, birds, flamingos, forest department rescues, sanctuaries"}
+  - {tag: "#StrayDogs", type: topic, parent: "#AnimalWelfare",
+     triggers: ["stray dogs", "stray dog", "dog bite", "dog bites", "stray cattle", "strays", "dog menace"],
+     description: "Stray dogs and animals: dog bites, dog menace, sterilisation, stray cattle"}
+  - {tag: "#AnimalWelfare", type: topic, parent: "#Environment",
+     triggers: ["animal welfare", "animal cruelty", "animal lovers", "animal rescue", "veterinary", "NGO for animals", "cattle"],
+     description: "Animal welfare: cruelty cases, rescues, veterinary care, animal rights activists"}
+  - {tag: "#SlumRedevelopment", type: topic, parent: "#Housing",
+     triggers: ["slum redevelopment", "slum rehabilitation", "slum dwellers", "slums", "slum", "cluster development", "cluster scheme", "rehabilitation scheme"],
+     description: "Slum redevelopment and rehabilitation: SRA, cluster development, slum dwellers, rehousing"}
+  - {tag: "#Redevelopment", type: topic, parent: "#Housing",
+     triggers: ["redevelopment", "redeveloped", "self-redevelopment", "dilapidated", "dangerous buildings", "dangerous building", "structural audit", "old buildings"],
+     description: "Building redevelopment: dilapidated and dangerous buildings, structural audits, society redevelopment"}
+  - {tag: "#IllegalConstruction", type: topic, parent: "#CivicIssues",
+     triggers: ["illegal construction", "illegal constructions", "unauthorised construction", "unauthorized construction", "illegal building", "illegal buildings", "demolition", "demolished", "demolition drive", "encroachment", "encroachments", "illegal structures"],
+     description: "Illegal constructions and demolitions: unauthorised buildings, encroachments, demolition drives"}
+  - {tag: "#Hawkers", type: topic, parent: "#CivicIssues",
+     triggers: ["hawkers", "hawker", "hawking", "street vendors", "vendors", "hawker zone", "anti-encroachment"],
+     description: "Hawkers and street vendors: encroachment drives, hawker zones, footpath vendors"}
+  - {tag: "#Metro", type: topic, parent: "#Infrastructure",
+     triggers: ["metro", "metro line", "metro station", "metro rail", "metro corridor", "metro work"],
+     description: "Metro rail: metro lines, stations, construction, trials and commuters"}
+  - {tag: "#Electricity", type: topic, parent: "#CivicIssues",
+     triggers: ["power cut", "power cuts", "power outage", "electricity", "load shedding", "power supply", "transformer", "electric shock", "electrocuted"],
+     description: "Electricity: power cuts, outages, MSEDCL supply, transformers, electrocution"}
+  - {tag: "#Elections", type: topic, parent: "#Politics",
+     triggers: ["election", "elections", "polls", "voting", "voters", "candidate", "candidates", "ballot", "ward reservation", "civic polls", "civic elections", "municipal elections", "campaign", "manifesto"],
+     description: "Elections: civic polls, candidates, campaigns, voting, results, ward reservations"}
+  - {tag: "#Protest", type: topic, parent: "#Politics",
+     triggers: ["protest", "protests", "protested", "protesters", "agitation", "morcha", "demonstration", "dharna", "rasta roko", "strike", "bandh", "andolan", "hunger strike", "indefinite fast", "fast unto death"],
+     description: "Protests and agitations: morcha, dharna, rasta roko, strikes, bandh, demonstrations"}
+  - {tag: "#RealEstate", type: topic, parent: "#Housing",
+     triggers: ["real estate", "property prices", "property market", "builder", "builders", "developer", "developers", "home buyers", "homebuyers", "MahaRERA", "RERA", "flat buyers"],
+     description: "Real estate: property market, builders, developers, home buyers, RERA"}
+  - {tag: "#Jobs", type: topic, parent: "#Business",
+     triggers: ["jobs", "employment", "unemployment", "recruitment", "hiring", "job fair", "placement", "vacancies"],
+     description: "Jobs and employment: recruitment drives, job fairs, unemployment, vacancies"}
+  - {tag: "#Hospitals", type: topic, parent: "#Health",
+     triggers: ["civil hospital", "civic hospital", "municipal hospital", "hospital staff", "ICU", "ward boy", "medical negligence"],
+     description: "Hospitals: civic and civil hospitals, ICU, staff, negligence, patient care"}
+  - {tag: "#Exams", type: topic, parent: "#Education",
+     triggers: ["exam", "exams", "examination", "board exam", "HSC", "SSC", "NEET", "JEE", "results declared", "toppers", "topper"],
+     description: "Exams and results: board exams, HSC, SSC, NEET, JEE, toppers, results"}
+  - {tag: "#Temple", type: topic, parent: "#Culture",
+     triggers: ["temple", "temples", "mandir", "darshan", "devotees", "shrine", "puja", "aarti"],
+     description: "Temples and religious events: darshan, devotees, puja, aarti, shrines"}
+  - {tag: "#Tourism", type: topic, parent: "#Culture",
+     triggers: ["tourism", "tourists", "tourist", "picnic spot", "weekend getaway", "fort", "forts", "trekking", "trek"],
+     description: "Tourism and travel: tourist spots, forts, treks, picnic spots, weekend getaways"}
+  - {tag: "#EcoFriendly", type: topic, parent: "#Environment",
+     triggers: ["eco-friendly", "eco friendly", "environment-friendly", "sustainable", "green initiative", "plastic-free", "plastic free", "plastic ban", "recycling", "recycle"],
+     description: "Eco-friendly and sustainable initiatives: green practices, plastic-free drives, recycling"}
+  - {tag: "#Awards", type: topic, parent: "#Culture",
+     triggers: ["award", "awards", "awarded", "felicitated", "felicitation", "honoured", "honored", "recognition"],
+     description: "Awards and felicitations: honours, recognition ceremonies, achievers"}
+  - {tag: "#SeniorCitizens", type: topic, parent: "#CivicIssues",
+     triggers: ["senior citizens", "senior citizen", "elderly", "old age home"],
+     description: "Senior citizens: elderly welfare, old age homes, pension, senior citizen issues"}
+  - {tag: "#NoisePollution", type: topic, parent: "#Pollution",
+     triggers: ["noise pollution", "noise limits", "noise levels", "decibel", "decibels", "loudspeakers", "loudspeaker", "loud DJs", "loud DJ", "DJ systems", "sound systems", "noise rules", "silence zone"],
+     description: "Noise pollution: loudspeakers, DJs, decibel limits, noise rules during festivals"}
+  - {tag: "#MarathaReservation", type: topic, parent: "#Politics",
+     triggers: ["Maratha reservation", "Maratha quota", "Maratha community", "Maratha agitation", "Kunbi", "OBC quota", "OBC reservation", "reservation for Marathas"],
+     description: "Maratha reservation agitation: Maratha quota demand, Manoj Jarange, Kunbi certificates, OBC reservation dispute"}
+  - {tag: "#Aviation", type: topic, parent: "#Transport",
+     triggers: ["flight", "flights", "airline", "airlines", "airport", "aircraft", "aviation", "air travel", "passenger flights"],
+     description: "Aviation: flights, airlines, airports, air travel routes and passengers"}
+  - {tag: "#Cleanliness", type: topic, parent: "#Garbage",
+     triggers: ["cleanliness drive", "clean-up drive", "cleanup drive", "Swachh Bharat", "Swachhata", "beach clean"],
+     description: "Cleanliness drives: clean-up campaigns, Swachh Bharat, beach clean-ups"}

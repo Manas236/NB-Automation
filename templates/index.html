@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Newsband Post Maker</title>
+<style>
+  :root { --red:#c40000; --red-dark:#9a0000; --ink:#1a1a1a; --muted:#6b6b6b; --line:#e6e6e6; --bg:#f6f6f6; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--ink); }
+  header { background:var(--red); color:#fff; padding:18px 28px; display:flex; align-items:center; gap:14px; }
+  header .logo { background:#fff; border-radius:999px; padding:6px 18px; font-family:Georgia,serif; font-size:22px; color:#111; }
+  header .logo b { color:var(--red); font-weight:400; }
+  header h1 { font-size:18px; font-weight:600; margin:0; }
+  main { max-width:1100px; margin:0 auto; padding:28px 20px 60px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:22px; margin-bottom:24px; }
+  .auto { display:flex; align-items:center; gap:12px; background:#fff; border:1px solid var(--line);
+          border-left:4px solid #1a7f37; border-radius:12px; padding:14px 18px; margin-bottom:14px; }
+  .auto.paused { border-left-color:#b58900; } .auto.off { border-left-color:#8a0000; }
+  .auto .dot { width:10px; height:10px; border-radius:50%; background:#1a7f37; flex:none; }
+  .auto.paused .dot { background:#b58900; } .auto.off .dot { background:#8a0000; }
+  .auto.live .dot { animation:pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity:.25; } }
+  .auto .txt { flex:1; min-width:0; font-size:14px; }
+  .auto .txt b { display:block; }
+  .auto .txt .sub { color:var(--muted); font-size:13px; }
+  .auto .counts { display:flex; gap:16px; text-align:center; font-size:12px; color:var(--muted); }
+  .auto .counts b { display:block; font-size:18px; color:var(--ink); }
+  .auto .mode { display:flex; border:1px solid #ccc; border-radius:6px; overflow:hidden; flex:none; }
+  .auto .mode button { background:#fff; color:var(--ink); border:0; padding:6px 10px; font-size:12px; cursor:pointer; }
+  .auto .mode button + button { border-left:1px solid #ccc; }
+  .auto .mode button.on { background:var(--red, #b00000); color:#fff; }
+  .auto .mode button:disabled { opacity:.6; cursor:default; }
+  .auto-log { display:none; background:#111; color:#d8d8d8; font-size:12px; line-height:1.5; margin:-8px 0 24px;
+              padding:14px 18px; border-radius:12px; max-height:260px; overflow:auto; white-space:pre-wrap; }
+  .auto-log.open { display:block; }
+  label { display:block; font-weight:600; margin-bottom:8px; }
+  textarea { width:100%; min-height:110px; padding:12px; font:inherit; font-size:15px; border:1px solid #ccc; border-radius:8px; resize:vertical; }
+  textarea:focus { outline:2px solid var(--red); border-color:transparent; }
+  .row { display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin-top:14px; }
+  select { padding:9px 12px; font:inherit; border:1px solid #ccc; border-radius:8px; background:#fff; }
+  button, .btn { display:inline-block; padding:10px 20px; font:inherit; font-weight:600; border:0; border-radius:8px; cursor:pointer; text-decoration:none; }
+  .btn-red { background:var(--red); color:#fff; } .btn-red:hover { background:var(--red-dark); }
+  .btn-ghost { background:#fff; color:var(--ink); border:1px solid #ccc; } .btn-ghost:hover { background:#f0f0f0; }
+  .btn-sm { padding:7px 14px; font-size:13px; }
+  .hint { color:var(--muted); font-size:13px; }
+  .flash { background:#fff4f4; border:1px solid #f0b4b4; color:#8a0000; padding:12px 16px; border-radius:8px; margin-bottom:18px; }
+  h2 { font-size:16px; margin:0 0 14px; }
+  .results { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:18px; }
+  .post { background:#fff; border:1px solid var(--line); border-radius:12px; overflow:hidden; display:flex; flex-direction:column; }
+  .post img { width:100%; aspect-ratio:3/4; object-fit:cover; display:block; background:#ddd; }
+  .post .body { padding:12px 14px 14px; display:flex; flex-direction:column; gap:8px; flex:1; }
+  .post .title { font-weight:600; font-size:14px; line-height:1.35; }
+  .post .meta { color:var(--muted); font-size:12px; }
+  .post .intro, .post .tags { font-size:13px; line-height:1.45; color:#333; background:#fafafa; border-left:3px solid var(--red); padding:8px 10px; border-radius:0 6px 6px 0; }
+  .post .tags { border-left-color:#e6a800; }
+  .post .intro .lbl, .post .tags .lbl { display:flex; justify-content:space-between; align-items:center; gap:6px; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin-bottom:4px; }
+  .post .intro button, .post .tags button { background:none; border:1px solid #ccc; border-radius:5px; padding:2px 8px; font:inherit; font-size:11px; cursor:pointer; text-transform:none; letter-spacing:0; }
+  .post .intro button:hover, .post .tags button:hover { background:#eee; }
+  .post .tags .txt { font-weight:600; color:#8a4b00; word-break:break-word; }
+  .post .tags .none { color:var(--muted); font-style:italic; }
+  .post .tags .err { color:#8a0000; font-style:italic; }
+  .why { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:50; padding:24px; overflow:auto; text-transform:none; letter-spacing:0; }
+  .why.open { display:block; }
+  .why .box { background:#fff; max-width:1150px; margin:0 auto; border-radius:12px; padding:18px 20px 22px; color:var(--ink); font-size:13px; }
+  .why .head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:10px; }
+  .why .head h3 { margin:0 0 4px; font-size:15px; }
+  .why .final { font-weight:600; color:#8a4b00; margin-bottom:10px; font-size:14px; }
+  .why table { width:100%; border-collapse:collapse; font-size:12px; }
+  .why th, .why td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  .why th { font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+  .why tr.sel { background:#fff8e6; } .why tr.sel td:nth-child(2) { font-weight:600; }
+  .why tr.drop { color:#999; }
+  .why td.n { white-space:nowrap; } .why td.s { text-align:right; font-variant-numeric:tabular-nums; }
+  .why small { color:var(--muted); }
+  .why .box button { padding:7px 14px; font-size:13px; }
+  .post .ig { font-size:13px; line-height:1.45; color:#333; background:#fafafa; border-left:3px solid #c13584; padding:8px 10px; border-radius:0 6px 6px 0; }
+  .post .ig .lbl { display:flex; justify-content:space-between; align-items:center; gap:6px; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin-bottom:4px; }
+  .post .ig .st { font-weight:600; }
+  .post .ig .st.published { color:#1a7f37; } .post .ig .st.failed { color:#8a0000; } .post .ig .st.busy { color:var(--muted); }
+  .post .ig .st.busy::before { content:""; display:inline-block; width:11px; height:11px; margin-right:6px; vertical-align:-1px; border:2px solid #ddd; border-top-color:#c13584; border-radius:50%; animation:spin .8s linear infinite; }
+  .post .ig .detail { color:var(--muted); font-size:12px; word-break:break-word; }
+  .post .ig .detail code { font-size:12px; user-select:all; }
+  .post .ig .reason { color:#8a0000; font-size:12px; word-break:break-word; }
+  .post .ig .row { margin:6px 0 0; gap:6px; }
+  .btn-ig { background:#c13584; color:#fff; } .btn-ig:hover { background:#9b2a6a; }
+  .btn-ig[disabled], .post .ig button[disabled] { opacity:.5; pointer-events:none; }
+  .post .actions { display:flex; gap:8px; margin-top:auto; flex-wrap:wrap; }
+  .post.fail { border-color:#f0b4b4; background:#fff8f8; }
+  .post.fail .body { color:#8a0000; }
+  .post.fail .url { word-break:break-all; font-size:12px; color:var(--muted); }
+  .gallery { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:14px; }
+  .gallery .post .title { font-size:12px; }
+  .spinner { display:none; align-items:center; gap:10px; color:var(--muted); font-size:14px; }
+  .spinner::before { content:""; width:16px; height:16px; border:3px solid #ddd; border-top-color:var(--red); border-radius:50%; animation:spin .8s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  form.busy .spinner { display:flex; } form.busy button[type=submit] { opacity:.5; pointer-events:none; }
+  form.inline { display:inline; }
+</style>
+</head>
+{% macro hashtag_block(h, file, title) %}
+{% if h %}
+<div class="tags">
+  <div class="lbl">
+    <span>Generated hashtags{% if not h.error and h.n_selected < 5 %} ({{ h.n_selected }}){% endif %}</span>
+    <span>{% if h.tags %}<button type="button" onclick="copyText(this)">Copy</button> {% endif %}<button type="button" onclick="openWhy(this)">Why?</button></span>
+  </div>
+  {% if h.error %}<span class="err">hashtags failed: {{ h.error }}</span>
+  {% elif h.tags %}<span class="txt">{{ h.text }}</span>
+  {% else %}<span class="none">no tag cleared the relevance floor</span>{% endif %}
+  <div class="why" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="box">
+      <div class="head">
+        <div>
+          <h3>{{ title }}</h3>
+          <span class="hint">dateline: {{ h.dateline or '–' }} · site category: {{ h.category or '–' }} · <a href="{{ url_for('meta_file', filename=file) }}" target="_blank">raw JSON</a></span>
+        </div>
+        <button type="button" class="btn-ghost" onclick="this.closest('.why').classList.remove('open')">Close</button>
+      </div>
+      <div class="final">{{ h.text or 'no tags' }}{% if h.padded %} <small>(padded: {{ h.padded|join(' ') }})</small>{% endif %}</div>
+      <table>
+        <tr><th></th><th>candidate</th><th>score</th><th>type</th><th>source</th><th>evidence</th><th>score factors</th></tr>
+        {% for c in h.candidates[:40] %}
+        <tr class="{{ 'sel' if c.selected else ('drop' if c.dropped else '') }}">
+          <td class="n">{{ '#' ~ c.pick if c.selected else '' }}</td>
+          <td class="n">{{ c.tag }}</td>
+          <td class="s">{{ '%.1f'|format(c.score) }}</td>
+          <td>{{ c.type }}</td>
+          <td>{{ c.source }}<br><small>{{ c.tier_name }}</small></td>
+          <td>{{ c.evidence }}</td>
+          <td>{{ c.reasons|join(' · ') }}{% if c.dropped %}<br><small><b>dropped:</b> {{ c.dropped }}</small>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </table>
+      {% if h.candidates|length > 40 %}<p class="hint">{{ h.candidates|length - 40 }} more low-scoring candidates in the raw JSON.</p>{% endif %}
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endmacro %}
+{% macro instagram_block(ig, file) %}
+{% if ig %}
+<div class="ig" data-file="{{ file }}">
+  <div class="lbl"><span>Instagram</span></div>
+  <div class="state">
+    {% if ig.status == 'published' %}
+      <div class="st published">Status: Published</div>
+      <div class="detail">Instagram Media ID: <code>{{ ig.media_id }}</code>{% if ig.published_at %} · {{ ig.published_at }}{% endif %}{% if ig.permalink %} · <a href="{{ ig.permalink }}" target="_blank">open post</a>{% endif %}</div>
+    {% elif ig.status == 'failed' %}
+      <div class="st failed">Status: Failed</div>
+      <div class="reason">Reason: {{ ig.error }}</div>
+      {% if ig.media_id %}<div class="detail">Earlier publish still live: <code>{{ ig.media_id }}</code></div>{% endif %}
+    {% elif ig.status == 'queued' %}
+      <div class="st busy">Status: Queued</div>
+      <div class="detail">{% if ig.due and ig.queue_pos == 1 %}sends at about {{ ig.due }}{% else %}waiting its turn{% if ig.queue_pos %} · position {{ ig.queue_pos }}{% endif %}{% endif %} — posts go out 2–3 min apart{% if ig.media_id %} · earlier publish still live: <code>{{ ig.media_id }}</code>{% endif %}</div>
+    {% else %}
+      <div class="st">Status: Not posted</div>
+    {% endif %}
+    {% if not ig.ready %}<div class="reason">Not ready: {{ ig.not_ready }} — re-generate this post from its article link.</div>{% endif %}
+  </div>
+  <div class="row">
+    {% if not ig.configured %}
+      <span class="hint">{{ ig.config_error or 'Instagram is not configured – see .env.example' }}</span>
+    {% elif not ig.ready %}
+      <span class="hint">Cannot post — {{ ig.not_ready }}</span>
+    {% elif ig.status == 'published' %}
+      <button type="button" class="btn-ghost btn-sm" onclick="postToInstagram(this, true)">Post again</button>
+    {% elif ig.status == 'failed' %}
+      <button type="button" class="btn-ig btn-sm" onclick="postToInstagram(this, {{ 'true' if ig.media_id else 'false' }})">Retry</button>
+    {% elif ig.status == 'queued' %}
+      <button type="button" class="btn-ghost btn-sm" onclick="cancelQueued(this)">Cancel</button>
+    {% else %}
+      <button type="button" class="btn-ig btn-sm" onclick="postToInstagram(this, false)">Post to Instagram</button>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endmacro %}
+<body>
+<header>
+  <div class="logo">news<b>b</b>and</div>
+  <h1>Instagram Post Maker</h1>
+</header>
+
+<main>
+  {% with messages = get_flashed_messages() %}
+    {% for m in messages %}<div class="flash">{{ m }}</div>{% endfor %}
+  {% endwith %}
+
+  <div class="auto off" id="auto">
+    <span class="dot"></span>
+    <span class="txt"><b id="auto-head">Autopilot</b><span class="sub" id="auto-sub">checking…</span></span>
+    <span class="counts">
+      <span><b id="auto-gen">0</b>made today</span>
+      <span><b id="auto-pub">0</b>posted today</span>
+      <span><b id="auto-fail">0</b>failed</span>
+    </span>
+    <span class="mode" id="auto-mode" title="What the autopilot does with a new article">
+      <button type="button" id="mode-post" onclick="setMode(true)">Create &amp; post</button>
+      <button type="button" id="mode-only" onclick="setMode(false)">Create only</button>
+    </span>
+    <button type="button" class="btn-ghost btn-sm" id="auto-btn" onclick="toggleAuto()">Pause</button>
+    <button type="button" class="btn-ghost btn-sm" onclick="document.getElementById('auto-log').classList.toggle('open')">Log</button>
+  </div>
+  <pre class="auto-log" id="auto-log">waiting for the first poll…</pre>
+
+  <div class="card">
+    <form method="post" action="{{ url_for('generate') }}" onsubmit="this.classList.add('busy')">
+      <label for="urls">Article link(s)</label>
+      <textarea id="urls" name="urls" placeholder="https://www.newsband.in/article_detail/…&#10;Paste one link per line to make several at once." autofocus>{{ request.form.get('urls','') }}</textarea>
+      <div class="row">
+        <button type="submit" class="btn-red">Generate post</button>
+        <label style="margin:0;font-weight:500;font-size:14px">Photo crop:
+          <select name="focus">
+            <option value="center">centre</option>
+            <option value="top">keep top</option>
+            <option value="bottom">keep bottom</option>
+          </select>
+        </label>
+        <span class="spinner">Fetching article & rendering…</span>
+      </div>
+      <p class="hint">Headline and main photo are pulled from the page automatically. Each post takes a couple of seconds.</p>
+    </form>
+  </div>
+
+  {% if results %}
+  <div class="card">
+    <h2>Just made</h2>
+    <div class="results">
+      {% for r in results %}
+        {% if r.ok %}
+        <div class="post">
+          <a href="{{ url_for('output_file', filename=r.file) }}" target="_blank">
+            <img src="{{ url_for('output_file', filename=r.file) }}" alt="">
+          </a>
+          <div class="body">
+            <div class="title">{{ r.headline }}</div>
+            {% if r.intro %}
+            <div class="intro">
+              <div class="lbl"><span>First line</span><button type="button" onclick="copyText(this)">Copy</button></div>
+              <span class="txt">{{ r.intro }}</span>
+            </div>
+            {% endif %}
+            {{ hashtag_block(r.hashtags, r.file, r.headline) }}
+            {{ instagram_block(r.instagram, r.file) }}
+            <div class="meta">{{ r.secs }}s · <a href="{{ r.url }}" target="_blank" style="color:inherit">article</a></div>
+            <div class="actions">
+              <a class="btn btn-red btn-sm" href="{{ url_for('output_file', filename=r.file, dl=1) }}">Download</a>
+              <a class="btn btn-ghost btn-sm" href="{{ url_for('output_file', filename=r.file) }}" target="_blank">Open</a>
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <div class="post fail">
+          <div class="body">
+            <div class="title">Failed</div>
+            <div class="url">{{ r.url }}</div>
+            <div>{{ r.error }}</div>
+          </div>
+        </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if gallery %}
+  <div class="card">
+    <h2>Previous posts <span class="hint">({{ gallery|length }})</span></h2>
+    <div class="gallery">
+      {% for g in gallery %}
+      <div class="post">
+        <a href="{{ url_for('output_file', filename=g.file) }}" target="_blank">
+          <img src="{{ url_for('output_file', filename=g.file) }}" alt="" loading="lazy">
+        </a>
+        <div class="body">
+          <div class="title">{{ g.headline or g.file[:-4].replace('-', ' ') }}</div>
+          {% if g.intro %}
+          <div class="intro">
+            <div class="lbl"><span>First line</span><button type="button" onclick="copyText(this)">Copy</button></div>
+            <span class="txt">{{ g.intro }}</span>
+          </div>
+          {% endif %}
+          {{ hashtag_block(g.hashtags, g.file, g.headline or g.file) }}
+          {{ instagram_block(g.instagram, g.file) }}
+          <div class="meta">
+            {{ g.when }}{% if g.url %} · <a href="{{ g.url }}" target="_blank" style="color:inherit">article</a>{% endif %}
+          </div>
+          <div class="actions">
+            <a class="btn btn-red btn-sm" href="{{ url_for('output_file', filename=g.file, dl=1) }}">Download</a>
+            <form class="inline" method="post" action="{{ url_for('delete_file', filename=g.file) }}" onsubmit="return confirm('Delete this post?')">
+              <button class="btn-ghost btn-sm" type="submit">Delete</button>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</main>
+<script>
+  function openWhy(btn) { btn.closest('.tags').querySelector('.why').classList.add('open'); }
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.why.open').forEach(el => el.classList.remove('open')); });
+  function esc(s) { return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+  function renderIg(box, ig) {
+    const st = box.querySelector('.state'), row = box.querySelector('.row');
+    if (ig.status === 'published') {
+      st.innerHTML = '<div class="st published">Status: Published</div><div class="detail">Instagram Media ID: <code>' + esc(ig.media_id) + '</code>'
+        + (ig.published_at ? ' · ' + esc(ig.published_at) : '') + (ig.permalink ? ' · <a href="' + esc(ig.permalink) + '" target="_blank">open post</a>' : '') + '</div>';
+      row.innerHTML = '<button type="button" class="btn-ghost btn-sm" onclick="postToInstagram(this, true)">Post again</button>';
+    } else if (ig.status === 'failed') {
+      st.innerHTML = '<div class="st failed">Status: Failed</div><div class="reason">Reason: ' + esc(ig.error) + '</div>'
+        + (ig.media_id ? '<div class="detail">Earlier publish still live: <code>' + esc(ig.media_id) + '</code></div>' : '');
+      row.innerHTML = '<button type="button" class="btn-ig btn-sm" onclick="postToInstagram(this, ' + (ig.media_id ? 'true' : 'false') + ')">Retry</button>';
+    } else if (ig.status === 'queued') {
+      const when = (ig.due && ig.queue_pos === 1) ? 'sends at about ' + esc(ig.due)
+                 : 'waiting its turn' + (ig.queue_pos ? ' · position ' + ig.queue_pos : '');
+      st.innerHTML = '<div class="st busy">Status: Queued</div><div class="detail">' + when + ' — posts go out 2–3 min apart'
+        + (ig.media_id ? ' · earlier publish still live: <code>' + esc(ig.media_id) + '</code>' : '') + '</div>';
+      row.innerHTML = '<button type="button" class="btn-ghost btn-sm" onclick="cancelQueued(this)">Cancel</button>';
+    } else {
+      st.innerHTML = '<div class="st">Status: Not posted</div>';
+      row.innerHTML = '<button type="button" class="btn-ig btn-sm" onclick="postToInstagram(this, false)">Post to Instagram</button>';
+    }
+    if (!ig.ready) {
+      st.innerHTML += '<div class="reason">Not ready: ' + esc(ig.not_ready) + ' — re-generate this post from its article link.</div>';
+      row.innerHTML = '<span class="hint">Cannot post — ' + esc(ig.not_ready) + '</span>';
+    }
+  }
+  async function cancelQueued(btn) {
+    const box = btn.closest('.ig'), file = box.dataset.file;
+    btn.disabled = true;
+    let data;
+    try { data = await (await fetch('/instagram/cancel/' + encodeURIComponent(file), {method: 'POST'})).json(); }
+    catch (e) { data = {ok: false, error: 'dashboard request failed: ' + e}; }
+    if (data.instagram) renderIg(box, data.instagram);
+    else btn.disabled = false;
+  }
+  async function postToInstagram(btn, force) {
+    const box = btn.closest('.ig'), file = box.dataset.file;
+    if (force && !confirm('This post is already on Instagram. Publish it again as a new post?')) return;
+    const st = box.querySelector('.state');
+    btn.disabled = true;
+    autoBusy = true;   // don't let the auto-reload yank the page while the request is out
+    st.innerHTML = '<div class="st busy">Status: Queuing…</div><div class="detail">joining the publish queue</div>';
+    let data;
+    try {
+      const r = await fetch('/instagram/post/' + encodeURIComponent(file) + (force ? '?force=1' : ''), {method: 'POST'});
+      data = await r.json();
+    } catch (e) {
+      data = {ok: false, error: 'dashboard request failed: ' + e};
+    }
+    autoBusy = false;
+    if (data.instagram) renderIg(box, data.instagram);
+    else { st.innerHTML = '<div class="st failed">Status: Failed</div><div class="reason">Reason: ' + esc(data.error || 'unknown error') + '</div>'; btn.disabled = false; }
+  }
+  // ---- autopilot strip: live status, and reload the page when it has made/posted something ----
+  let autoVersion = null, autoBusy = false;
+  async function refreshAuto() {
+    let s;
+    try { s = await (await fetch('/autopilot/status')).json(); } catch (e) { return; }
+    const box = document.getElementById('auto');
+    box.className = 'auto' + (!s.running ? ' off' : (!s.enabled ? ' paused' : (s.current !== 'idle' ? ' live' : '')));
+    document.getElementById('auto-head').textContent =
+      !s.running ? 'Autopilot not running' : (!s.enabled ? 'Autopilot paused' :
+        (s.posting ? 'Autopilot on — new articles are posted to Instagram automatically'
+                   : 'Autopilot on — posts are created for you to publish from the gallery'));
+    document.getElementById('mode-post').className = s.posting ? 'on' : '';
+    document.getElementById('mode-only').className = s.posting ? '' : 'on';
+    const bits = [];
+    bits.push(s.current && s.current !== 'idle' ? s.current : ('every ' + Math.round(s.interval / 60) + ' min'));
+    if (s.last_poll) bits.push('last check ' + s.last_poll);
+    if (s.next_poll && s.enabled) bits.push('next ' + s.next_poll);
+    if (s.next_publish && s.enabled) bits.push('holding a post until ' + s.next_publish);
+    if (s.queued) bits.push(s.queued + ' post' + (s.queued > 1 ? 's' : '') + ' queued to Instagram (2–3 min apart)' + (s.queue_next ? ', next at about ' + s.queue_next : ''));
+    if (s.only_today) bits.push("today's articles only");
+    if (s.config_error) bits.push('⚠ ' + s.config_error);
+    else if (s.last_error) bits.push('⚠ ' + s.last_error);
+    document.getElementById('auto-sub').textContent = bits.join(' · ');
+    document.getElementById('auto-gen').textContent = s.generated_today || 0;
+    document.getElementById('auto-pub').textContent = s.published_today || 0;
+    document.getElementById('auto-fail').textContent = s.failed || 0;
+    document.getElementById('auto-btn').textContent = s.enabled ? 'Pause' : 'Resume';
+    const log = document.getElementById('auto-log');
+    if (s.log && s.log.length) { const stick = log.scrollTop + log.clientHeight >= log.scrollHeight - 20;
+      log.textContent = s.log.join('\n'); if (stick) log.scrollTop = log.scrollHeight; }
+    // a new post appeared (or one was published) -> pull it into the gallery, unless the
+    // owner is in the middle of something on this page
+    if (autoVersion === null) autoVersion = s.version;
+    else if (s.version !== autoVersion && !autoBusy && !document.querySelector('.why.open')
+             && !document.getElementById('auto-log').classList.contains('open')
+             && !document.querySelector('form.busy')) location.reload();
+  }
+  async function toggleAuto() {
+    await fetch('/autopilot/toggle', {method: 'POST'});
+    refreshAuto();
+  }
+  async function setMode(post) {
+    if (post && !confirm('Create & post: every new article will be published to Instagram by itself, one post per slot. Switch on?')) return;
+    for (const b of document.querySelectorAll('#auto-mode button')) b.disabled = true;
+    try { await fetch('/autopilot/mode', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({post})}); }
+    finally { for (const b of document.querySelectorAll('#auto-mode button')) b.disabled = false; }
+    refreshAuto();
+  }
+  refreshAuto();
+  setInterval(refreshAuto, 10000);
+
+  function copyText(btn) {
+    const t = btn.closest('.intro, .tags').querySelector('.txt').textContent.trim();
+    navigator.clipboard.writeText(t).then(() => { btn.textContent = 'Copied'; setTimeout(() => btn.textContent = 'Copy', 1500); });
+  }
+</script>
+</body>
+</html>

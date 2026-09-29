@@ -1,0 +1,12 @@
+.env
+.env.*
+!.env.example
+__pycache__/
+.cache/
+downloads/
+output/
+meta/
+*.log
+seen_urls.json
+autopost_state.json
+autopilot_mode.json

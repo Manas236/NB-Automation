@@ -1,0 +1,12 @@
+Flask>=3.0
+Pillow>=10.0
+requests>=2.31
+beautifulsoup4>=4.12
+lxml>=5.0
+python-dotenv>=1.0     # .env loading for Insta_poster.py
+# hashtag suggestion (hashtags.py)
+PyYAML>=6.0
+numpy>=1.26
+spacy>=3.8
+sentence-transformers>=3.0
+# plus the spaCy English model:  python -m spacy download en_core_web_sm

@@ -1,0 +1,773 @@
+# Hashtag eval - ground truth. You own this file; nothing generates the labels.
+#
+# For each article set three lists, then flip `labelled` to true:
+#   must    tags that HAVE to be suggested. A miss is a failure (recall).
+#   accept  fine if suggested, not required. Keeps a good tag from being
+#           counted as a mistake just because it wasn't on your must-list.
+#   forbid  must NEVER be suggested. Emitting one is a failure - this is the
+#           safety line (named accused, wrong civic body, off-topic noise).
+#
+# Anything the system emits that is on none of the three lists is reported as
+# "unjudged" so you can come back and label it. Articles with labelled: false
+# are skipped by the scorer entirely.
+#
+# The candidate menu under each article is what the CURRENT code considered -
+# copy tags from it, but do not treat it as a suggestion. The most valuable
+# labels are the tags it never proposed at all: write those into `must` by hand.
+#
+# Worked example (this article is not in the corpus - it is here to show the shape):
+#
+#   some-slug-from-a-crime-story:
+#     headline: "Three held for assaulting shopkeeper in Turbhe"
+#     dateline: Navi Mumbai
+#     labelled: true
+#     must:   ["#NaviMumbai", "#Crime"]
+#     accept: ["#Turbhe", "#Police", "#NaviMumbaiPolice"]
+#     forbid: ["#AjitSaroj"]        # never name the accused
+#
+# EDITORIAL RULES (owner, 2026-09-22) - apply consistently when labelling:
+#   R1  Crime/law stories: individual-person hashtags are forbid - accused, victims,
+#       complainants and witnesses alike - unless explicitly decided otherwise later.
+#   R2  Bare or mangled surnames/name fragments are forbid as junk, on any story.
+#   R3  Headline-derived phrase tags are judged per article. Decided so far:
+#       accept #CigaretteRow #CivicLand #BannedMangurFish #GitaLessons #GauriIdols #Inquiry #ArmsAct;
+#       forbid #ShivshahiDriver #TopPriority #OilBuyers.
+#   R4  Never tag a minor, on any story.
+#   R5  R1 is judged by story content, not the site's category. It also covers a business
+#       named after / owned by an accused, and victims in fire/accident stories.
+#   R6  Places: the specific town/node where the event happened = must; its parent city =
+#       accept; neighbourhoods/areas inside it = accept (P2); landmarks/addresses = forbid.
+#   R7  Named individuals outside R1: protagonist officials = accept; officials mentioned in
+#       passing = forbid; private citizens = forbid; politicians linked to a failure or
+#       controversy = forbid; public figures who are the story's subject = must/accept (P3).
+#   R8  #Fire = actual fires only. Fire-service / rescue stories use #FireBrigade.
+#   P1  forbid = false, misleading, unsafe or junk; accept = true but not essential.
+#   P2  The locality where the event happened is accept (precedent #SubhashTekdi).
+#   P3  Public figures who are the subject of a non-crime story are must/accept.
+#
+articles:
+
+  1-235-students-give-shape-to-imagination-through-words:
+    headline: "1,235 students give shape to imagination through words"
+    dateline: "Kalyan"
+    category: "Youth & Education"
+    labelled: true   # owner-labelled, authoritative
+    must:   ["#Education", "#Dombivli"]
+    accept: ["#Kalyan", "#Maharashtra", "#PaaiFriendsLibrary", "#StorytellingCompetition", "#Culture", "#RajeshMore"]
+    forbid: ["#Temple", "#Festival", "#Politics", "#ShrikantShinde"]
+    # candidates the current code considered:
+    #   #Education                   8.6  alias     picked #1
+    #   #Kalyan                      5.0  alias     picked #2
+    #   #Dombivli                    3.4  alias     picked #4
+    #   #Festival                    3.4  alias     picked #3
+    #   #Temple                      3.2  alias     outranked in final selection
+    #   #Maharashtra                 2.9  alias     type cap: already 2 place tags
+    #   #ShrikantShinde              2.8  alias     picked #5
+    #   #Politics                    2.7  alias     outranked in final selection
+    #   #Culture                     1.2  alias     below relevance floor (1.2 < 2.0)
+    #   #YoungLearners               1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #PaaiFriendsLibrary          1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #Thane                       0.8  alias     below relevance floor (0.8 < 2.0)
+    #   #Badlapur                    0.8  alias     below relevance floor (0.8 < 2.0)
+    #   #Ambernath                   0.8  alias     below relevance floor (0.8 < 2.0)
+    #   #Vashi                       0.8  alias     below relevance floor (0.8 < 2.0)
+    #   #Koparkhairane               0.8  alias     below relevance floor (0.8 < 2.0)
+    #   #Nerul                       0.8  alias     below relevance floor (0.8 < 2.0)
+    #   #Panvel                      0.8  alias     below relevance floor (0.8 < 2.0)
+
+  175-kg-of-banned-mangur-fish-seized-in-bhiwandi-fir-register:
+    headline: "175 kg of banned mangur fish seized in Bhiwandi, FIR registered against seller"
+    dateline: "Thane"
+    category: "Civic & Politics"
+    labelled: true   # locked 2026-09-22 (R1-R8, P1-P3)
+    must:   ["#Bhiwandi", "#Crime"]
+    accept: ["#BannedMangurFish", "#MangurFish", "#Thane", "#Police", "#ThanePolice", "#BNMC", "#IllegalSale"]
+    forbid: ["#ImranFishShop", "#Imran", "#NazirQureshi", "#FishCommittee", "#Garbage", "#TMC", "#MarathaReservation", "#Politics"]
+    # candidates the current code considered:
+    #   #Bhiwandi                    5.8  alias     picked #1
+    #   #BannedMangurFish            5.4  phrase    picked #3
+    #   #Crime                       5.3  alias     picked #2
+    #   #ImranFishShop               2.6  ner       organisation not in the catalogue and not headline / lede su
+    #   #NazirQureshi                2.5  ner       unnamed-in-catalogue person in a crime story (never tagged)
+    #   #Thane                       2.5  alias     picked #4
+    #   #FishCommittee               2.4  ner       organisation not in the catalogue and not headline / lede su
+    #   #Imran                       2.2  ner       organisation not in the catalogue and not headline / lede su
+    #   #IllegalSale                 1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #ProhibitedSpecies           1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #Garbage                     1.1  alias     below relevance floor (1.1 < 2.0)
+    #   #ThanePolice                 0.7  resolved  weak evidence (score 0.7 < 2.5) → backed off to #Police
+    #   #Police                      0.7  backoff   below relevance floor (0.7 < 2.0)
+    #   #Palghar                     0.5  alias     below relevance floor (0.5 < 2.0)
+    #   #MarathaReservation          0.4  semantic  weak evidence (score 0.4 < 2.5) → backed off to #Politics
+    #   #Politics                    0.4  backoff   below relevance floor (0.4 < 2.0)
+    #   #FishShop                    0.1  phrase    below relevance floor (0.1 < 2.0)
+    #   #TMC                         0.0  resolved  weak evidence (score 0.0 < 2.5) → backed off to #CivicIssues
+
+  6-154-ganesh-idols-immersed-across-navi-mumbai-on-fifth-day:
+    headline: "6,154 Ganesh idols immersed across Navi Mumbai on fifth day"
+    dateline: "Navi Mumbai"
+    category: "Civic & Politics"
+    labelled: false
+    must:   []
+    accept: []
+    forbid: []
+    # candidates the current code considered:
+    #   #NaviMumbai                  7.2  alias     picked #1
+    #   #Ganeshotsav                 4.5  alias     picked #2
+    #   #NMMC                        4.3  alias     picked #4
+    #   #EcoFriendly                 3.5  alias     picked #3
+    #   #GaneshIdols                 3.3  phrase    outranked in final selection
+    #   #Environment                 3.2  alias     outranked in final selection
+    #   #BombayHighCourt             2.8  alias     picked #5
+    #   #Ganesh                      2.4  ner       organisation not in the catalogue and not headline / lede su
+    #   #ArtificialImmersion         1.7  phrase    below relevance floor (1.7 < 2.0)
+    #   #NaturalImmersionSites       1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #PositiveResponse            1.0  phrase    below relevance floor (1.0 < 2.0)
+    #   #Health                      0.9  alias     below relevance floor (0.9 < 2.0)
+    #   #Belapur                     0.7  alias     below relevance floor (0.7 < 2.0)
+    #   #Nerul                       0.7  alias     below relevance floor (0.7 < 2.0)
+    #   #Vashi                       0.7  alias     below relevance floor (0.7 < 2.0)
+    #   #Koparkhairane               0.7  alias     below relevance floor (0.7 < 2.0)
+    #   #Ghansoli                    0.7  alias     below relevance floor (0.7 < 2.0)
+    #   #Airoli                      0.7  alias     below relevance floor (0.7 < 2.0)
+
+  birthday-sword-reel-triggers-police-action:
+    headline: "Birthday sword reel triggers police action"
+    dateline: "Navi Mumbai"
+    category: "Law & Crime"
+    labelled: true   # locked 2026-09-22 (R1-R8, P1-P3)
+    must:   ["#Crime", "#Turbhe"]
+    accept: ["#NaviMumbai", "#TurbheMIDC", "#Police", "#NaviMumbaiPolice", "#ArmsAct", "#SocialMediaReel", "#SocialMedia"]
+    forbid: ["#Festival", "#Maharashtra", "#AjitMunnaSaroj", "#VishalMunnaSaroj", "#AbhishekPaswan", "#AjitSaroj", "#Drugs", "#CyberCrime", "#Protest", "#Politics", "#Roads"]
+    # candidates the current code considered:
+    #   #Police                      5.2  alias     picked #1
+    #   #Crime                       5.1  alias     picked #3
+    #   #NaviMumbaiPolice            4.3  alias     picked #5
+    #   #Festival                    4.1  alias     picked #2
+    #   #Maharashtra                 3.1  alias     picked #4
+    #   #NaviMumbai                  2.5  alias     outranked in final selection
+    #   #AjitMunnaSaroj              2.2  ner       unnamed-in-catalogue person in a crime story (never tagged)
+    #   #VishalMunnaSaroj            2.2  ner       unnamed-in-catalogue person in a crime story (never tagged)
+    #   #AbhishekPaswan              2.2  ner       unnamed-in-catalogue person in a crime story (never tagged)
+    #   #TurbheMIDC                  1.6  ner       organisation not in the catalogue and not headline / lede su
+    #   #SwordLikeWeapon             1.2  phrase    below relevance floor (1.2 < 2.0)
+    #   #SubsequentPosting           1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #SocialMediaReel             1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #ArmsAct                     1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #RelevantSections            1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #AjitSaroj                   0.3  ner       unnamed-in-catalogue person in a crime story (never tagged)
+    #   #Turbhe                      0.2  ner       organisation not in the catalogue and not headline / lede su
+    #   #Drugs                       0.1  semantic  weak evidence (score 0.2 < 2.5) → backed off to #Crime
+
+  bmc-frames-policy-to-regulate-commercial-sports-turfs-on-civ:
+    headline: "BMC frames policy to regulate commercial sports turfs on civic land"
+    dateline: "Mumbai"
+    category: "Civic & Politics"
+    labelled: true   # locked 2026-09-22 (R1-R8, P1-P3)
+    must:   ["#BMC", "#Mumbai"]
+    accept: ["#Sports", "#CivicIssues", "#SportsTurf", "#CivicLand", "#TurfLicenceFee", "#Business"]
+    forbid: ["#Cricket", "#Football", "#NoObjectionCertificates", "#ReadyReckoner", "#Hawkers"]
+    # candidates the current code considered:
+    #   #Sports                      7.9  alias     picked #1
+    #   #BMC                         7.4  alias     picked #2
+    #   #Cricket                     4.1  alias     outranked in final selection
+    #   #Football                    4.0  alias     outranked in final selection
+    #   #Business                    3.1  alias     picked #3
+    #   #CivicLand                   2.7  phrase    picked #4
+    #   #Mumbai                      2.5  alias     picked #5
+    #   #NoObjectionCertificates     2.3  ner       organisation not in the catalogue and not headline / lede su
+    #   #TurfLicenceFee              2.2  ner       person not in the catalogue and not in the headline
+    #   #MunicipalLeaseholdPlots     1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #ProperPermissions           1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #ProposedPolicy              1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #CivicIssues                 0.8  semantic  below relevance floor (0.8 < 2.0)
+    #   #ReadyReckoner               0.3  ner       person not in the catalogue and not in the headline
+    #   #Hawkers                     0.2  semantic  weak evidence (score 0.2 < 2.5) → backed off to #CivicIssues
+    #   #DCPR                        0.1  ner       organisation not in the catalogue and not headline / lede su
+
+  bmw-in-fatal-coastal-road-crash-had-prior-speeding-complaint:
+    headline: "BMW in fatal Coastal Road crash had prior speeding complaint"
+    dateline: "Mumbai"
+    category: "Law & Crime"
+    labelled: false
+    must:   []
+    accept: []
+    forbid: []
+    # candidates the current code considered:
+    #   #Accident                    7.8  alias     picked #1
+    #   #BMW                         6.9  ner       picked #2
+    #   #Infrastructure              6.9  alias     picked #3
+    #   #Mumbai                      5.2  alias     picked #4
+    #   #Crime                       3.8  alias     outranked in final selection
+    #   #OmkarShirke                 2.9  ner       unnamed-in-catalogue person in a crime story (never tagged)
+    #   #PriorSpeedingComplaint      2.7  phrase    picked #5
+    #   #MumbaiPolice                2.2  resolved  weak evidence (score 2.2 < 2.5) → backed off to #Police
+    #   #Police                      2.2  backoff   outranked in final selection
+    #   #SocialMedia                 1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #Education                   0.8  alias     below relevance floor (0.8 < 2.0)
+    #   #Health                      0.5  alias     below relevance floor (0.5 < 2.0)
+    #   #Traffic                     0.4  semantic  weak evidence (score 0.4 < 2.5) → backed off to #Transport
+    #   #Transport                   0.4  backoff   below relevance floor (0.4 < 2.0)
+    #   #Shirke                      0.3  ner       organisation not in the catalogue and not headline / lede su
+    #   #Exams                       0.3  alias     below relevance floor (0.3 < 2.0)
+    #   #HajiAli                     0.2  ner       unnamed-in-catalogue person in a crime story (never tagged)
+    #   #MarineDrive                 0.2  ner       organisation not in the catalogue and not headline / lede su
+
+  delhi-hc-rejects-plea-seeking-probe-into-cash-recovery-row-i:
+    headline: "Delhi HC rejects plea seeking probe into cash recovery row involving ex-judge Varma"
+    dateline: "New Delhi"
+    category: "Civic & Politics"
+    labelled: false
+    must:   []
+    accept: []
+    forbid: []
+    # candidates the current code considered:
+    #   #Court                       8.4  alias     picked #1
+    #   #BombayHighCourt             7.4  alias     picked #2
+    #   #YashwantVarma               6.0  ner       unnamed-in-catalogue person in a crime story (never tagged)
+    #   #Crime                       3.6  alias     picked #4
+    #   #CashRecoveryRow             2.7  phrase    picked #3
+    #   #GhanshyamUpadhyay           2.6  ner       unnamed-in-catalogue person in a crime story (never tagged)
+    #   #SIT                         2.4  ner       organisation not in the catalogue and not headline / lede su
+    #   #CBI                         2.3  ner       organisation not in the catalogue and not headline / lede su
+    #   #JusticeAmitBansal           1.7  phrase    below relevance floor (1.7 < 2.0)
+    #   #LegalRemedies               1.7  phrase    below relevance floor (1.7 < 2.0)
+    #   #AllegedRecovery             1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #LargeAmount                 1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #WildWitchHunt               1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #PetitionerSLocus            1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #ExistingProcedures          1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #Fire                        0.6  alias     below relevance floor (0.6 < 2.0)
+    #   #SupremeCourt                0.6  alias     below relevance floor (0.6 < 2.0)
+    #   #MarathaReservation          0.4  semantic  weak evidence (score 0.4 < 2.5) → backed off to #Politics
+
+  dhillon-wins-silver-patil-claims-bronze-as-india-shine-in-sh:
+    headline: "Dhillon wins silver, Patil claims bronze as India shine in shooting"
+    dateline: ""
+    category: "Other Sports"
+    labelled: false
+    must:   []
+    accept: []
+    forbid: []
+    # candidates the current code considered:
+    #   #Sports                      7.6  alias     picked #1
+    #   #Dhillon                     6.3  ner       picked #2
+    #   #Patil                       3.3  phrase    picked #3
+    #   #India                       3.3  phrase    type cap: already 1 phrase tags
+    #   #HimanshuDhillon             2.9  ner       person not in the catalogue and not in the headline
+    #   #RudrankkshPatil             2.3  ner       organisation not in the catalogue and not headline / lede su
+    #   #IndiaSShooters              1.2  phrase    below relevance floor (1.2 < 2.0)
+    #   #ComposedPerformance         1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #InternationalStage          1.1  phrase    below relevance floor (1.0 < 2.0)
+    #   #Elections                   0.6  alias     below relevance floor (0.6 < 2.0)
+    #   #Cricket                     0.4  semantic  weak evidence (score 0.4 < 2.5) → backed off to #Sports
+    #   #DroupadiMurmu               0.2  ner       person not in the catalogue and not in the headline
+    #   #Bollywood                   0.2  semantic  weak evidence (score 0.2 < 2.5) → backed off to #Entertainme
+    #   #Entertainment               0.2  backoff   below relevance floor (0.2 < 2.0)
+    #   #MansukhMandaviya            0.2  ner       person not in the catalogue and not in the headline
+    #   #Ganeshotsav                 0.1  semantic  weak evidence (score 0.2 < 2.5) → backed off to #Festival
+    #   #Festival                    0.1  backoff   below relevance floor (0.2 < 2.0)
+    #   #MarathiCinema               0.1  semantic  weak evidence (score 0.1 < 2.5) → backed off to #Entertainme
+
+  firefighters-rescue-five-year-old-boy-trapped-in-kharghar-li:
+    headline: "Firefighters rescue five-year-old boy trapped in Kharghar lift"
+    dateline: "Kharghar"
+    category: "Civic & Politics"
+    labelled: true   # locked 2026-09-22 (R1-R8, P1-P3)
+    must:   ["#Kharghar", "#FireBrigade"]
+    accept: ["#NaviMumbai", "#CIDCO", "#Rescue", "#PrashantDarekar", "#PRPatil", "#CCPawar", "#PSNikale"]
+    forbid: ["#Fire", "#Wildlife", "#Crime", "#PlotNo", "#KiyanRahulJagyashi", "#Roads"]
+    # candidates the current code considered:
+    #   #Fire                        8.4  alias     picked #1
+    #   #Kharghar                    7.8  alias     picked #2
+    #   #Wildlife                    3.0  alias     picked #3
+    #   #Crime                       2.5  alias     picked #4
+    #   #PlotNo                      1.3  ner       organisation not in the catalogue and not headline / lede su
+    #   #ResidentialBuilding         1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #CIDCO                       0.6  alias     below relevance floor (0.6 < 2.0)
+    #   #KiyanRahulJagyashi          0.1  ner       unnamed-in-catalogue person in a crime story (never tagged)
+    #   #PRPatil                     0.0  ner       unnamed-in-catalogue person in a crime story (never tagged)
+    #   #CCPawar                     0.0  ner       unnamed-in-catalogue person in a crime story (never tagged)
+    #   #PSNikale                    0.0  ner       unnamed-in-catalogue person in a crime story (never tagged)
+    #   #Roads                      -0.0  alias     only a weak trigger matched and the story does not read as #
+
+  gita-lessons-mark-the-golden-jubilee-of-vashi-cha-chintamani:
+    headline: "Gita lessons mark the Golden Jubilee of Vashi Cha Chintamani"
+    dateline: "Vashi"
+    category: ""
+    labelled: true   # locked 2026-09-22 (R1-R8, P1-P3)
+    must:   ["#Vashi", "#Ganeshotsav"]
+    accept: ["#Festival", "#Culture", "#NaviMumbai", "#EcoFriendly", "#GitaLessons", "#Mahabharata", "#GoldenJubilee"]
+    forbid: ["#Temple", "#ArunDatte", "#ChinmayKhamkar", "#SatwikThackeray", "#SharadManisha", "#APaithaniSareeHome", "#Diwali", "#Navratri", "#Holi", "#Technology", "#Business"]
+    # candidates the current code considered:
+    #   #Vashi                       8.8  alias     picked #1
+    #   #GoldenJubilee               5.4  ner       picked #2
+    #   #Festival                    4.8  alias     picked #3
+    #   #Ganeshotsav                 4.7  alias     outranked in final selection
+    #   #Culture                     3.9  alias     outranked in final selection
+    #   #Temple                      3.8  alias     outranked in final selection
+    #   #GitaLessons                 3.3  phrase    picked #5
+    #   #EcoFriendly                 2.9  alias     picked #4
+    #   #Mahabharata                 1.9  ner       organisation not in the catalogue and not headline / lede su
+    #   #StrikingRepresentation      1.7  phrase    below relevance floor (1.7 < 2.0)
+    #   #Health                      1.3  alias     below relevance floor (1.3 < 2.0)
+    #   #SocialCommitment            1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #Mumbai                      0.8  alias     below relevance floor (0.8 < 2.0)
+    #   #Technology                  0.4  alias     below relevance floor (0.4 < 2.0)
+    #   #Business                    0.3  alias     below relevance floor (0.3 < 2.0)
+    #   #ArunDatte                   0.3  ner       person not in the catalogue and not in the headline
+    #   #Diwali                      0.3  semantic  weak evidence (score 0.3 < 2.5) → backed off to #Festival
+    #   #Navratri                    0.3  semantic  weak evidence (score 0.3 < 2.5) → backed off to #Festival
+
+  govt-witness-s-statement-recorded-in-shastrinagar-hospital-d:
+    headline: "Govt witness’s statement recorded in Shastrinagar Hospital doctor assault case"
+    dateline: "Kalyan"
+    category: "Law & Crime"
+    labelled: false
+    must:   []
+    accept: []
+    forbid: []
+    # candidates the current code considered:
+    #   #Crime                       8.7  alias     picked #1
+    #   #Health                      7.7  alias     picked #2
+    #   #Court                       5.2  alias     picked #4
+    #   #Kalyan                      4.8  alias     picked #3
+    #   #KDMC                        3.1  alias     picked #5
+    #   #GovernmentWitness           1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #Hospitals                   0.3  semantic  weak evidence (score 0.3 < 2.5) → backed off to #Health
+    #   #ThanePolice                 0.3  resolved  weak evidence (score 0.3 < 2.5) → backed off to #Police
+    #   #Police                      0.3  semantic  below relevance floor (0.3 < 2.0)
+    #   #RameshMhatre                0.2  ner       unnamed-in-catalogue person in a crime story (never tagged)
+    #   #AnantPatki                  0.2  ner       unnamed-in-catalogue person in a crime story (never tagged)
+    #   #MKQazi                      0.2  ner       unnamed-in-catalogue person in a crime story (never tagged)
+    #   #PrakashSalsingikar          0.2  ner       unnamed-in-catalogue person in a crime story (never tagged)
+    #   #NPVasade                    0.1  ner       unnamed-in-catalogue person in a crime story (never tagged)
+    #   #WomenSafety                 0.1  semantic  weak evidence (score 0.1 < 2.5) → backed off to #Crime
+    #   #Drugs                       0.0  semantic  weak evidence (score 0.0 < 2.5) → backed off to #Crime
+
+  iit-bombay-removes-dean-amid-protests-over-sahil-wakode-s-de:
+    headline: "IIT-Bombay removes dean amid protests over Sahil Wakode’s death"
+    dateline: "Mumbai"
+    category: "Youth & Education"
+    labelled: false
+    must:   []
+    accept: []
+    forbid: []
+    # candidates the current code considered:
+    #   #Protest                     8.4  alias     picked #1
+    #   #IIT                         6.9  ner       picked #2
+    #   #SahilWakode                 6.3  ner       unnamed-in-catalogue person in a crime story (never tagged)
+    #   #Education                   5.3  alias     picked #3
+    #   #MumbaiPolice                4.1  alias     picked #4
+    #   #Mumbai                      2.5  alias     picked #5
+    #   #ShireeshKedare              2.3  ner       unnamed-in-catalogue person in a crime story (never tagged)
+    #   #Powai                       1.3  ner       organisation not in the catalogue and not headline / lede su
+    #   #Suicide                     1.1  alias     below relevance floor (1.0 < 2.0)
+    #   #Exams                       0.8  alias     below relevance floor (0.8 < 2.0)
+    #   #MarathaReservation          0.5  semantic  weak evidence (score 0.5 < 2.5) → backed off to #Politics
+    #   #Politics                    0.5  backoff   below relevance floor (0.5 < 2.0)
+    #   #BTech                       0.3  ner       organisation not in the catalogue and not headline / lede su
+    #   #SuryanarayanaDoolla         0.2  ner       unnamed-in-catalogue person in a crime story (never tagged)
+    #   #Wakode                      0.1  ner       organisation not in the catalogue and not headline / lede su
+    #   #Crime                      -0.3  alias     below relevance floor (-0.3 < 2.0)
+
+  jaishankar-to-lead-indian-delegation-at-un-general-assembly:
+    headline: "Jaishankar to lead Indian delegation at UN General Assembly"
+    dateline: "New York"
+    category: "Civic & Politics"
+    labelled: false
+    must:   []
+    accept: []
+    forbid: []
+    # candidates the current code considered:
+    #   #SJaishankar                 6.9  ner       picked #1
+    #   #UNGA                        2.9  ner       organisation not in the catalogue and not headline / lede su
+    #   #GeneralDebate               2.9  ner       picked #3
+    #   #UNGeneralAssemblyExternalAffairs   2.9  ner       picked #2
+    #   #AUnitedNations              2.9  ner       type cap: already 2 org tags
+    #   #IndianDelegation            2.7  phrase    picked #4
+    #   #UnitedNationsGeneralAssembly   2.4  ner       organisation not in the catalogue and not headline / lede su
+    #   #RestoringTrust              1.7  phrase    below relevance floor (1.7 < 2.0)
+    #   #ManagingTransformation      1.7  phrase    below relevance floor (1.7 < 2.0)
+    #   #Politics                    1.5  alias     below relevance floor (1.5 < 2.0)
+    #   #IndiaSDelegation            1.2  phrase    below relevance floor (1.2 < 2.0)
+    #   #HighLevelSession            1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #GovernmentLeaders           1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #GlobalChallenges            1.0  phrase    below relevance floor (1.0 < 2.0)
+    #   #EcoFriendly                 0.8  alias     below relevance floor (0.8 < 2.0)
+    #   #Environment                 0.6  alias     below relevance floor (0.6 < 2.0)
+    #   #MinistryOfExternalAffairs   0.3  ner       organisation not in the catalogue and not headline / lede su
+    #   #Eid                         0.2  semantic  weak evidence (score 0.2 < 2.5) → backed off to #Festival
+
+  karan-johar-locks-2028-release-for-r-n-kao-biopic:
+    headline: "Karan Johar locks 2028 release for R.N. Kao biopic"
+    dateline: ""
+    category: "Entertainment"
+    labelled: true   # locked 2026-09-22 (R1-R8, P1-P3)
+    must:   ["#KaranJohar", "#Bollywood"]
+    accept: ["#RNKao", "#RameshwarNathKao", "#DharmaProductions", "#Entertainment", "#RAW", "#Biopic", "#LeoMediaCollective", "#NitinGokhale", "#GentlemanSpymaster", "#Culture"]
+    forbid: ["#KaranJoharDharmaProductions", "#Kao", "#MarathiCinema", "#TheatricalReleaseDate"]
+    # candidates the current code considered:
+    #   #KaranJohar                  4.5  ner       picked #1
+    #   #Bollywood                   3.9  alias     picked #2
+    #   #RNKao                       3.9  ner       picked #3
+    #   #Culture                     2.8  alias     picked #4
+    #   #KaranJoharDharmaProductions   2.4  ner       person not in the catalogue and not in the headline
+    #   #RameshwarNathKao            2.3  ner       person not in the catalogue and not in the headline
+    #   #LeoMediaCollective          2.2  ner       organisation not in the catalogue and not headline / lede su
+    #   #NitinGokhale                2.2  ner       organisation not in the catalogue and not headline / lede su
+    #   #GentlemanSpymaster          2.2  ner       person not in the catalogue and not in the headline
+    #   #Kao                         2.1  ner       organisation not in the catalogue and not headline / lede su
+    #   #TheatricalReleaseDate       1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #IndiaPakistanWar            0.9  phrase    below relevance floor (0.9 < 2.0)
+    #   #MarathiCinema               0.4  semantic  weak evidence (score 0.4 < 2.5) → backed off to #Entertainme
+    #   #Entertainment               0.4  backoff   below relevance floor (0.4 < 2.0)
+
+  man-killed-after-cigarette-row:
+    headline: "Man killed after cigarette row"
+    dateline: "Ulhasnagar"
+    category: "Law & Crime"
+    labelled: true   # reviewed by owner 2026-09-22
+    must:   ["#Crime", "#Ulhasnagar"]
+    accept: ["#Police", "#ThanePolice", "#CigaretteRow", "#Murder"]
+    forbid: ["#RohitJagtale", "#Jagtale", "#RohitSandipGhatbisawe", "#Ghatbisawe", "#SahilSontakke", "#Sontakke", "#PrathamBankar", "#AniketKharat", "#SahilMhaske", "#NareshMhaske", "#Politics", "#Suicide", "#Health", "#BNS", "#BharatiyaNyayaSanhita"]
+    # candidates the current code considered:
+    #   #Crime                       7.5  alias     picked #1
+    #   #Ulhasnagar                  4.8  alias     picked #2
+    #   #RohitSandipGhatbisawe       2.9  ner       unnamed-in-catalogue person in a crime story (never tagged)
+    #   #CigaretteRow                2.7  phrase    picked #3
+    #   #RohitJagtale                2.6  ner       organisation not in the catalogue and not headline / lede su
+    #   #SahilSontakke               2.3  ner       unnamed-in-catalogue person in a crime story (never tagged)
+    #   #Police                      2.2  backoff   picked #4
+    #   #ThanePolice                 2.2  resolved  weak evidence (score 2.2 < 2.5) → backed off to #Police
+    #   #Jagtale                     1.2  ner       organisation not in the catalogue and not headline / lede su
+    #   #Health                      1.0  alias     below relevance floor (1.0 < 2.0)
+    #   #PrathamBankar               0.9  ner       unnamed-in-catalogue person in a crime story (never tagged)
+    #   #AniketKharat                0.7  ner       organisation not in the catalogue and not headline / lede su
+    #   #NareshMhaske                0.5  alias     weak evidence (score 0.5 < 2.5) → backed off to #Politics
+    #   #Politics                    0.5  backoff   below relevance floor (0.5 < 2.0)
+    #   #Suicide                     0.5  semantic  weak evidence (score 0.4 < 2.5) → backed off to #Crime
+    #   #Ghatbisawe                  0.2  ner       organisation not in the catalogue and not headline / lede su
+    #   #Sontakke                    0.2  ner       organisation not in the catalogue and not headline / lede su
+    #   #BharatiyaNyayaSanhita       0.0  ner       organisation not in the catalogue and not headline / lede su
+
+  murder-in-subhash-tekdi-solved-with-cctv-footage-five-arrest:
+    headline: "Murder in Subhash Tekdi solved with CCTV footage, five arrested"
+    dateline: "Ulhasnagar"
+    category: "Law & Crime"
+    labelled: true   # reviewed by owner 2026-09-22
+    must:   ["#Crime", "#Ulhasnagar"]
+    accept: ["#ThanePolice", "#Police", "#CCTV", "#SubhashTekdi", "#Murder", "#UlhasnagarCrimeBranch"]
+    forbid: ["#RohitJagdale", "#Jagdale", "#PrathamBankar", "#AniketKharat", "#SahilMhaske", "#AtishManohar", "#PratikKshetre", "#ChandraharGodse", "#NareshMhaske", "#Politics", "#Protest", "#WomenSafety", "#Suicide", "#IllegalConstruction", "#Health", "#Tom"]
+    # candidates the current code considered:
+    #   #Crime                       9.0  alias     picked #1
+    #   #Ulhasnagar                  5.8  alias     picked #2
+    #   #CCTV                        4.2  ner       picked #3
+    #   #ThanePolice                 3.9  resolved  picked #4
+    #   #RohitJagdale                2.3  ner       organisation not in the catalogue and not headline / lede su
+    #   #Jagdale                     2.2  ner       organisation not in the catalogue and not headline / lede su
+    #   #SubhashTekdi                1.7  phrase    below relevance floor (1.7 < 2.0)
+    #   #Health                      1.1  alias     below relevance floor (1.1 < 2.0)
+    #   #PreviousDispute             1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #PaverBlocks                 1.1  phrase    below relevance floor (1.0 < 2.0)
+    #   #Protest                     0.3  semantic  weak evidence (score 0.3 < 2.5) → backed off to #Politics
+    #   #Politics                    0.3  backoff   below relevance floor (0.3 < 2.0)
+    #   #ChandraharGodse             0.2  ner       unnamed-in-catalogue person in a crime story (never tagged)
+    #   #Police                      0.2  semantic  below relevance floor (0.2 < 2.0)
+    #   #PrathamBankar               0.2  ner       unnamed-in-catalogue person in a crime story (never tagged)
+    #   #AniketKharat                0.2  ner       organisation not in the catalogue and not headline / lede su
+    #   #WomenSafety                 0.1  semantic  weak evidence (score 0.1 < 2.5) → backed off to #Crime
+    #   #Suicide                     0.1  semantic  weak evidence (score 0.1 < 2.5) → backed off to #Crime
+
+  nmmc-oversees-the-immersion-of-14-318-ganesh-idols-and-2-230:
+    headline: "NMMC oversees the immersion of 14,318 Ganesh idols and 2,230 Gauri idols"
+    dateline: "Navi Mumbai"
+    category: "Civic & Politics"
+    labelled: true   # locked 2026-09-22 (R1-R8, P1-P3)
+    must:   ["#NMMC", "#NaviMumbai", "#Ganeshotsav"]
+    accept: ["#Festival", "#GauriIdols", "#Ganesh", "#EcoFriendly", "#Environment", "#Culture", "#SujataPatil", "#KailasShinde", "#Ghansoli", "#Koparkhairane", "#FireBrigade"]
+    forbid: ["#Fire", "#Temple", "#Navratri", "#Holi", "#Awards", "#Health", "#Shadu", "#BombayHighCourt"]
+    # candidates the current code considered:
+    #   #NMMC                        7.4  alias     picked #1
+    #   #GauriIdols                  4.8  phrase    picked #2
+    #   #Ganesh                      3.9  ner       picked #4
+    #   #Festival                    3.4  alias     picked #3
+    #   #NaviMumbai                  2.5  alias     outranked in final selection
+    #   #Fire                        2.1  alias     picked #5
+    #   #NaviMumbaiPolice            1.9  resolved  weak evidence (score 1.9 < 2.5) → backed off to #Police
+    #   #Police                      1.9  backoff   below relevance floor (1.9 < 2.0)
+    #   #Ganeshotsav                 1.8  alias     below relevance floor (1.8 < 2.0)
+    #   #ImmersionCeremony           1.7  phrase    below relevance floor (1.7 < 2.0)
+    #   #LordGaneshIdols             1.2  phrase    below relevance floor (1.2 < 2.0)
+    #   #WellPlannedArrangements     1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #Awards                      1.1  alias     below relevance floor (1.0 < 2.0)
+    #   #SmoothProceedings           1.1  phrase    below relevance floor (1.0 < 2.0)
+    #   #EcoFriendly                 1.0  alias     below relevance floor (1.0 < 2.0)
+    #   #Environment                 0.8  alias     below relevance floor (0.8 < 2.0)
+    #   #BombayHighCourt             0.7  alias     below relevance floor (0.7 < 2.0)
+    #   #Ghansoli                    0.7  alias     below relevance floor (0.7 < 2.0)
+
+  pisavali-zp-school-repair-drags-on-students-suffer-in-monsoo:
+    headline: "Pisavali ZP school repair drags on, students suffer in monsoon"
+    dateline: "Kalyan"
+    category: "Youth & Education"
+    labelled: true   # locked 2026-09-22 (R1-R8, P1-P3)
+    must:   ["#Education", "#Pisavali"]
+    accept: ["#Kalyan", "#Monsoon", "#CivicIssues", "#ZillaParishad", "#ZP", "#Infrastructure"]
+    forbid: ["#WaterSupply", "#Environment", "#BuddhistCommunityHall", "#SevereInconvenience"]
+    # candidates the current code considered:
+    #   #Education                   8.7  alias     picked #1
+    #   #Monsoon                     6.4  alias     picked #2
+    #   #Kalyan                      3.9  alias     picked #3
+    #   #ZP                          2.4  ner       organisation not in the catalogue and not headline / lede su
+    #   #Pisavali                    1.4  ner       organisation not in the catalogue and not headline / lede su
+    #   #WaterSupply                 1.2  alias     below relevance floor (1.2 < 2.0)
+    #   #SevereInconvenience         1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #Infrastructure              0.9  alias     below relevance floor (0.9 < 2.0)
+    #   #Environment                 0.3  alias     below relevance floor (0.3 < 2.0)
+    #   #AlternativeLocation         0.0  phrase    below relevance floor (0.0 < 2.0)
+    #   #BuddhistCommunityHall       0.0  phrase    below relevance floor (0.0 < 2.0)
+
+  praggnanandhaa-gukesh-guide-india-to-win-over-netherlands-at:
+    headline: "Praggnanandhaa, Gukesh guide India to win over Netherlands at Chess Olympiad"
+    dateline: ""
+    category: "Other Sports"
+    labelled: true   # locked 2026-09-22 (R1-R8, P1-P3)
+    must:   ["#Sports", "#Chess", "#India"]
+    accept: ["#Praggnanandhaa", "#RPraggnanandhaa", "#Gukesh", "#ChessOlympiad", "#Olympiad", "#Netherlands", "#AnishGiri", "#ArjunErigaisi", "#NihalSarin"]
+    forbid: ["#GukeshGuide", "#Cricket", "#Giri", "#Vaishali", "#UnbeatenRun", "#JointLeaders", "#TopBoard"]
+    # candidates the current code considered:
+    #   #Sports                      7.7  alias     picked #1
+    #   #Praggnanandhaa              3.3  phrase    picked #2
+    #   #GukeshGuide                 3.3  phrase    type cap: already 1 phrase tags
+    #   #India                       3.3  phrase    type cap: already 1 phrase tags
+    #   #Netherlands                 2.7  phrase    type cap: already 1 phrase tags
+    #   #AnishGiri                   2.3  ner       person not in the catalogue and not in the headline
+    #   #RPraggnanandhaa             1.7  phrase    below relevance floor (1.7 < 2.0)
+    #   #UnbeatenRun                 1.2  phrase    below relevance floor (1.2 < 2.0)
+    #   #JointLeaders                1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #TopBoard                    1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #Olympiad                    0.4  ner       organisation not in the catalogue and not headline / lede su
+    #   #Cricket                     0.4  semantic  weak evidence (score 0.4 < 2.5) → backed off to #Sports
+    #   #Giri                        0.3  ner       organisation not in the catalogue and not headline / lede su
+    #   #ArjunErigaisi               0.2  ner       person not in the catalogue and not in the headline
+    #   #NihalSarin                  0.2  ner       person not in the catalogue and not in the headline
+    #   #Vaishali                    0.2  ner       organisation not in the catalogue and not headline / lede su
+
+  safety-must-remain-a-top-priority-while-working-says-msedcl:
+    headline: "Safety must remain a top priority while working, says MSEDCL HR director"
+    dateline: "Mumbai"
+    category: "Civic & Politics"
+    labelled: true   # locked 2026-09-22 (R1-R8, P1-P3)
+    must:   ["#MSEDCL", "#Electricity"]
+    accept: ["#Maharashtra", "#Infrastructure", "#Mumbai", "#RajendraPawar", "#Safety", "#PenCircle"]
+    forbid: ["#TopPriority", "#HighestPriority", "#Business", "#PrecautionaryMeasures", "#HumanResources", "#PenCircleSuperintendentEngineer", "#DhanrajBikkad", "#CustomerComplaints", "#CurrentStatus", "#ServiceDelivery"]
+    # candidates the current code considered:
+    #   #MSEDCL                      7.1  alias     picked #1
+    #   #Electricity                 5.3  alias     picked #4
+    #   #Maharashtra                 3.7  alias     picked #2
+    #   #Infrastructure              3.5  alias     picked #3
+    #   #TopPriority                 2.7  phrase    picked #5
+    #   #Mumbai                      2.5  alias     outranked in final selection
+    #   #PrecautionaryMeasures       1.8  phrase    below relevance floor (1.8 < 2.0)
+    #   #HumanResources              1.7  phrase    below relevance floor (1.7 < 2.0)
+    #   #RajendraPawar               1.7  phrase    below relevance floor (1.7 < 2.0)
+    #   #Business                    1.5  alias     only a weak trigger matched and the story does not read as #
+    #   #HighestPriority             1.2  phrase    below relevance floor (1.2 < 2.0)
+    #   #PenCircle                   1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #PowerDistributionNetwork    1.0  phrase    below relevance floor (1.0 < 2.0)
+    #   #ServiceDelivery             1.0  phrase    below relevance floor (1.0 < 2.0)
+    #   #Alibaug                     0.7  alias     below relevance floor (0.7 < 2.0)
+    #   #PenCircleSuperintendentEngineer   0.2  ner       organisation not in the catalogue and not headline / lede su
+    #   #DhanrajBikkad               0.2  ner       person not in the catalogue and not in the headline
+    #   #CustomerComplaints          0.0  phrase    below relevance floor (0.0 < 2.0)
+
+  sanpada-recreates-sonyachi-jejuri-for-shivtej-mitra-mandal-s:
+    headline: "Sanpada recreates ‘Sonyachi Jejuri’ for Shivtej Mitra Mandal’s 33rd Ganeshotsav"
+    dateline: "Sanpada"
+    category: "Civic & Politics"
+    labelled: false
+    must:   []
+    accept: []
+    forbid: []
+    # candidates the current code considered:
+    #   #Sanpada                     8.8  alias     picked #1
+    #   #Ganeshotsav                 8.4  alias     picked #2
+    #   #Festival                    5.0  alias     type cap: already 3 topic tags
+    #   #Temple                      4.4  alias     type cap: already 3 topic tags
+    #   #Culture                     3.7  alias     picked #3
+    #   #NaviMumbai                  3.1  alias     picked #5
+    #   #Environment                 2.6  alias     picked #4
+    #   #ChaKaiwari                  2.4  ner       person not in the catalogue and not in the headline
+    #   #UniqueTheme                 1.2  phrase    below relevance floor (1.2 < 2.0)
+    #   #SocialResponsibility        1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #Awards                      0.8  alias     below relevance floor (0.8 < 2.0)
+    #   #EcoFriendly                 0.7  alias     below relevance floor (0.7 < 2.0)
+    #   #SeniorCitizens              0.6  alias     below relevance floor (0.6 < 2.0)
+    #   #Health                      0.5  alias     below relevance floor (0.5 < 2.0)
+    #   #Navratri                    0.5  semantic  weak evidence (score 0.5 < 2.5) → backed off to #Festival
+    #   #KhandobaMaharaj             0.4  ner       person not in the catalogue and not in the headline
+    #   #YelkotJaiMalhar             0.3  ner       person not in the catalogue and not in the headline
+    #   #TreasurerNileshKachare      0.2  ner       person not in the catalogue and not in the headline
+
+  shivshahi-driver-assaulted-four-flee:
+    headline: "Shivshahi driver assaulted, four flee"
+    dateline: "Navi Mumbai"
+    category: "Law & Crime"
+    labelled: true   # locked 2026-09-22 (R1-R8, P1-P3)
+    must:   ["#Crime", "#NaviMumbai"]
+    accept: ["#MSRTC", "#NaviMumbaiPolice", "#Police", "#APMC", "#Shivshahi", "#Transport"]
+    forbid: ["#ShivshahiDriver", "#BalajiKamble", "#Kamble", "#VaranaCircle", "#GovernmentEmployee", "#Accident", "#WomenSafety", "#Traffic", "#Roads", "#Business", "#BNS", "#BharatiyaNyayaSanhita"]
+    # candidates the current code considered:
+    #   #Crime                       8.5  alias     picked #1
+    #   #NaviMumbaiPolice            3.8  resolved  picked #4
+    #   #ShivshahiDriver             3.3  phrase    picked #2
+    #   #MSRTC                       3.1  alias     picked #3
+    #   #NaviMumbai                  2.5  alias     picked #5
+    #   #APMC                        1.9  ner       organisation not in the catalogue and not headline / lede su
+    #   #GovernmentEmployee          1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #Maharashtra                 0.8  alias     below relevance floor (0.8 < 2.0)
+    #   #Thane                       0.8  alias     below relevance floor (0.8 < 2.0)
+    #   #Alibaug                     0.8  alias     below relevance floor (0.8 < 2.0)
+    #   #Accident                    0.5  semantic  weak evidence (score 0.5 < 2.5) → backed off to #Crime
+    #   #Kamble                      0.5  ner       organisation not in the catalogue and not headline / lede su
+    #   #Transport                   0.4  semantic  below relevance floor (0.4 < 2.0)
+    #   #Traffic                     0.4  semantic  weak evidence (score 0.4 < 2.5) → backed off to #Transport
+    #   #BalajiKamble                0.3  ner       unnamed-in-catalogue person in a crime story (never tagged)
+    #   #WomenSafety                 0.3  semantic  weak evidence (score 0.3 < 2.5) → backed off to #Crime
+    #   #VaranaCircle                0.2  ner       organisation not in the catalogue and not headline / lede su
+    #   #Police                      0.1  semantic  below relevance floor (0.1 < 2.0)
+
+  six-year-old-arch-collapses-in-ambernath-inquiry-ordered:
+    headline: "Six-year-old arch collapses in Ambernath: Inquiry ordered"
+    dateline: "Ambernath"
+    category: "Law & Crime"
+    labelled: true   # locked 2026-09-22 (R1-R8, P1-P3)
+    must:   ["#Ambernath", "#CivicIssues"]
+    accept: ["#Infrastructure", "#Roads", "#Traffic", "#Inquiry", "#AmbernathMunicipalCouncil", "#Politics"]
+    forbid: ["#Temple", "#BJP", "#Ganeshotsav", "#Housing", "#Redevelopment", "#LargePortion", "#BalajiKinikar", "#AbhijitKaranjulePatil", "#RajeshTadvi"]
+    # candidates the current code considered:
+    #   #Ambernath                   7.8  alias     picked #1
+    #   #Temple                      3.7  alias     picked #3
+    #   #Inquiry                     3.3  phrase    picked #2
+    #   #Traffic                     2.8  alias     picked #4
+    #   #Roads                       1.7  alias     weak evidence (score 1.7 < 2.5) → backed off to #CivicIssues
+    #   #CivicIssues                 1.7  resolved-generic below relevance floor (1.7 < 2.0)
+    #   #Politics                    1.2  alias     below relevance floor (1.2 < 2.0)
+    #   #LargePortion                1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #Ganeshotsav                 0.8  alias     below relevance floor (0.8 < 2.0)
+    #   #BJP                         0.7  alias     below relevance floor (0.7 < 2.0)
+    #   #Infrastructure              0.6  alias     below relevance floor (0.6 < 2.0)
+    #   #Redevelopment               0.5  semantic  weak evidence (score 0.5 < 2.5) → backed off to #Housing
+    #   #Housing                     0.5  backoff   below relevance floor (0.5 < 2.0)
+    #   #BalajiKinikar               0.4  ner       person not in the catalogue and not in the headline
+    #   #ThanePolice                 0.3  resolved  weak evidence (score 0.3 < 2.5) → backed off to #Police
+    #   #Police                      0.3  backoff   below relevance floor (0.3 < 2.0)
+    #   #AbhijitKaranjulePatil       0.2  ner       person not in the catalogue and not in the headline
+
+  sofa-factory-gutted-in-massive-digha-fire-workers-escape-saf:
+    headline: "Sofa factory gutted in massive Digha fire, workers escape safely"
+    dateline: "Digha"
+    category: "Civic & Politics"
+    labelled: true   # locked 2026-09-22 (R1-R8, P1-P3)
+    must:   ["#Fire", "#Digha"]
+    accept: ["#NaviMumbai", "#NMMC", "#Airoli", "#Business", "#WoodWorldFurniture", "#FireBrigade", "#EshwarNagar"]
+    forbid: ["#Crime", "#Sofa", "#Housing", "#Redevelopment", "#IllegalConstruction", "#UpendraBhoir", "#WoodenMaterial", "#ExtensiveDamage", "#SofaManufacturingUnit"]
+    # candidates the current code considered:
+    #   #Fire                        7.4  alias     picked #1
+    #   #Crime                       6.3  alias     picked #3
+    #   #Sofa                        4.5  ner       picked #2
+    #   #EshwarNagar                 2.3  ner       organisation not in the catalogue and not headline / lede su
+    #   #SofaManufacturingUnit       1.8  phrase    below relevance floor (1.8 < 2.0)
+    #   #WoodWorldFurniture          1.3  ner       organisation not in the catalogue and not headline / lede su
+    #   #Business                    1.2  alias     only a weak trigger matched and the story does not read as #
+    #   #ExtensiveDamage             1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #Electricity                 0.7  alias     below relevance floor (0.7 < 2.0)
+    #   #NMMC                        0.7  alias     below relevance floor (0.7 < 2.0)
+    #   #Airoli                      0.5  alias     below relevance floor (0.5 < 2.0)
+    #   #Redevelopment               0.1  semantic  weak evidence (score 0.1 < 2.5) → backed off to #Housing
+    #   #Housing                     0.1  backoff   below relevance floor (0.1 < 2.0)
+    #   #IllegalConstruction         0.1  semantic  weak evidence (score 0.1 < 2.5) → backed off to #CivicIssues
+    #   #CivicIssues                 0.1  backoff   below relevance floor (0.1 < 2.0)
+    #   #WoodenMaterial              0.1  phrase    below relevance floor (0.1 < 2.0)
+    #   #UpendraBhoir                0.0  ner       unnamed-in-catalogue person in a crime story (never tagged)
+
+  thane-girls-roll-ball-team-wins-bronze-at-state-level-champi:
+    headline: "Thane Girls’ Roll Ball team wins Bronze at State-Level Championship"
+    dateline: "Kalyan"
+    category: "Other Sports"
+    labelled: false
+    must:   []
+    accept: []
+    forbid: []
+    # candidates the current code considered:
+    #   #Sports                      7.7  alias     picked #1
+    #   #Thane                       7.4  alias     picked #2
+    #   #Mumbai                      2.7  alias     picked #3
+    #   #Kalyan                      2.5  alias     type cap: already 2 place tags
+    #   #Nashik                      1.8  alias     below relevance floor (1.8 < 2.0)
+    #   #Education                   1.3  alias     below relevance floor (1.3 < 2.0)
+    #   #ImpressivePerformance       1.2  phrase    below relevance floor (1.2 < 2.0)
+    #   #ExcellentSkills             1.0  phrase    below relevance floor (1.0 < 2.0)
+    #   #Awards                      0.8  alias     below relevance floor (0.8 < 2.0)
+    #   #Exams                       0.5  semantic  weak evidence (score 0.5 < 2.5) → backed off to #Education
+    #   #Cricket                     0.3  semantic  weak evidence (score 0.3 < 2.5) → backed off to #Sports
+    #   #PratapPagar                 0.2  ner       person not in the catalogue and not in the headline
+    #   #JacintaSuarez               0.2  ner       person not in the catalogue and not in the headline
+    #   #RavindraDesai               0.2  ner       person not in the catalogue and not in the headline
+    #   #AbarnaSethuraman            0.2  ner       person not in the catalogue and not in the headline
+    #   #AryaBurkule                 0.1  ner       person not in the catalogue and not in the headline
+    #   #VaishnaviSurve              0.1  ner       person not in the catalogue and not in the headline
+    #   #Under20Under17Categories    0.1  phrase    below relevance floor (0.1 < 2.0)
+
+  trump-signs-russia-sanctions-law-warns-oil-buyers-of-tariffs:
+    headline: "Trump signs Russia sanctions law, warns oil buyers of tariffs"
+    dateline: "New Delhi"
+    category: "Business & Finance"
+    labelled: true   # locked 2026-09-22 (R1-R8, P1-P3)
+    must:   ["#Business", "#India", "#Russia"]
+    accept: ["#DonaldTrump", "#USA", "#Tariffs", "#Sanctions", "#CrudeOil", "#RussianOil", "#NCP", "#EnergySecurity"]
+    forbid: ["#OilBuyers", "#LindseyOGrahamSanctioning", "#USPresident", "#LargeQuantities", "#BiggestPurchasers", "#TariffProvisions", "#SharadchandraPawar", "#MaheshTapase", "#Jobs"]
+    # candidates the current code considered:
+    #   #DonaldTrump                 6.6  ner       picked #1
+    #   #OilBuyers                   3.3  phrase    picked #2
+    #   #RussiaSanctionsLaw          2.7  phrase    type cap: already 1 phrase tags
+    #   #LindseyOGrahamSanctioning   2.0  ner       organisation not in the catalogue and not headline / lede su
+    #   #USPresident                 1.7  phrase    below relevance floor (1.7 < 2.0)
+    #   #TariffProvisions            1.6  phrase    below relevance floor (1.6 < 2.0)
+    #   #RussianOil                  1.4  phrase    below relevance floor (1.4 < 2.0)
+    #   #LargeQuantities             1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #BiggestPurchasers           1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #NCP                         0.7  alias     below relevance floor (0.7 < 2.0)
+    #   #Jobs                        0.5  alias     below relevance floor (0.5 < 2.0)
+    #   #SharadchandraPawar          0.2  ner       person not in the catalogue and not in the headline
+    #   #MaheshTapase                0.1  ner       person not in the catalogue and not in the headline
+    #   #Business                   -0.1  alias     below relevance floor (-0.1 < 2.0)
+
+  where-is-the-road:
+    headline: "Where is the road?"
+    dateline: "Ambernath"
+    category: "Civic & Politics"
+    labelled: true   # locked 2026-09-22 (R1-R8, P1-P3)
+    must:   ["#Roads", "#Ambernath", "#CivicIssues"]
+    accept: ["#MIDC", "#Transport", "#Maharashtra", "#Infrastructure", "#Potholes", "#MMRDA", "#Morivali", "#ChikhloliMIDC"]
+    forbid: ["#MohanKushwaha", "#SopanPatil", "#SSNanaware", "#RajeshTadvi", "#Driver", "#TruckTempoDrivers", "#Hawkers", "#Accident", "#Business", "#FinancialLosses", "#FrequentVehicleBreakdowns"]
+    # candidates the current code considered:
+    #   #Roads                       8.4  alias     picked #1
+    #   #Ambernath                   5.2  alias     picked #2
+    #   #Maharashtra                 4.0  alias     picked #3
+    #   #CivicIssues                 3.9  resolved-generic picked #5
+    #   #Transport                   3.6  alias     picked #4
+    #   #TruckTempoDrivers           1.7  phrase    below relevance floor (1.7 < 2.0)
+    #   #ChikhloliMIDC               1.7  ner       unnamed-in-catalogue person in a crime story (never tagged)
+    #   #Accident                    1.3  alias     below relevance floor (1.3 < 2.0)
+    #   #MIDC                        1.3  ner       organisation not in the catalogue and not headline / lede su
+    #   #TruckDrivers                1.2  phrase    below relevance floor (1.2 < 2.0)
+    #   #FactoryWorkers              1.2  phrase    below relevance floor (1.2 < 2.0)
+    #   #FrequentVehicleBreakdowns   1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #FinancialLosses             1.1  phrase    below relevance floor (1.1 < 2.0)
+    #   #Business                    0.8  alias     below relevance floor (0.7 < 2.0)
+    #   #MMRDA                       0.7  alias     below relevance floor (0.7 < 2.0)
+    #   #MohanKushwaha               0.4  ner       unnamed-in-catalogue person in a crime story (never tagged)
+    #   #Traffic                     0.3  semantic  weak evidence (score 0.3 < 2.5) → backed off to #Transport
+    #   #SopanPatil                  0.3  ner       unnamed-in-catalogue person in a crime story (never tagged)
