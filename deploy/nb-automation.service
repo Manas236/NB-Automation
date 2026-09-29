@@ -14,6 +14,10 @@ Group=nbauto
 WorkingDirectory=/opt/nb-automation
 # .env is also read by the app itself (python-dotenv); nothing else needed here.
 Environment=PYTHONUNBUFFERED=1
+# Hashtag maths on one core: ~1 s per article instead of grabbing every core the website needs.
+Environment=OMP_NUM_THREADS=1
+# glibc gives each thread its own heap arena; capping them stops slow RSS creep over weeks.
+Environment=MALLOC_ARENA_MAX=2
 # --workers 1 is load-bearing: the autopilot and the publish queue live in the worker's memory,
 #   and a second worker = a second autopilot = double posts.
 # --threads 8: page loads, status polling and a long /generate can run side by side.
@@ -25,8 +29,9 @@ ExecStart=/opt/nb-automation/venv/bin/gunicorn wsgi:app \
     --access-logfile - --error-logfile -
 Restart=always
 RestartSec=10
-# The hashtag models (torch + spaCy) need ~1-1.5 GB. Cap it so a runaway can't starve the website.
-MemoryMax=2500M
+# Measured peak with every model loaded: ~640 MB (2026-09-29). 1.5 GB is ~2.4x that; the cap
+# means a runaway gets restarted instead of starving the website.
+MemoryMax=1536M
 NoNewPrivileges=true
 PrivateTmp=true
 

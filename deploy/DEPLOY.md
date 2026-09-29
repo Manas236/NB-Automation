@@ -12,8 +12,9 @@ browser ──https──> Cloudflare ──> nginx/Apache (already running the 
 
 ## Before you start
 
-- **The server needs:** Linux with systemd, Python **3.11 or newer** (3.12 recommended), about
-  **2 GB of free RAM** for the hashtag models, and about 3 GB of disk.
+- **The server needs:** Linux with systemd, Python **3.11 or newer** (3.12 recommended), **1.5 GB of RAM
+  for this app** (measured peak ~640 MB), **3 GB of disk** (~2 GB installed), and a share of
+  one CPU core (it is idle almost all the time).
 - **You need shell access with sudo.** Shared cPanel hosting cannot run this: the autopilot is a
   process that runs all the time.
 - **⚠ Only one copy of the autopilot may run.** When the server copy starts, **close the
