@@ -14,14 +14,14 @@
   header h1 { font-size:18px; font-weight:600; margin:0; }
   main { max-width:1100px; margin:0 auto; padding:28px 20px 60px; }
   .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:22px; margin-bottom:24px; }
-  .auto { display:flex; align-items:center; gap:12px; background:#fff; border:1px solid var(--line);
+  .auto { display:flex; flex-wrap:wrap; align-items:center; gap:12px; background:#fff; border:1px solid var(--line);
           border-left:4px solid #1a7f37; border-radius:12px; padding:14px 18px; margin-bottom:14px; }
   .auto.paused { border-left-color:#b58900; } .auto.off { border-left-color:#8a0000; }
   .auto .dot { width:10px; height:10px; border-radius:50%; background:#1a7f37; flex:none; }
   .auto.paused .dot { background:#b58900; } .auto.off .dot { background:#8a0000; }
   .auto.live .dot { animation:pulse 1.2s ease-in-out infinite; }
   @keyframes pulse { 50% { opacity:.25; } }
-  .auto .txt { flex:1; min-width:0; font-size:14px; }
+  .auto .txt { flex:1 1 260px; min-width:0; font-size:14px; }
   .auto .txt b { display:block; }
   .auto .txt .sub { color:var(--muted); font-size:13px; }
   .auto .counts { display:flex; gap:16px; text-align:center; font-size:12px; color:var(--muted); }
@@ -31,6 +31,14 @@
   .auto .mode button + button { border-left:1px solid #ccc; }
   .auto .mode button.on { background:var(--red, #b00000); color:#fff; }
   .auto .mode button:disabled { opacity:.6; cursor:default; }
+  .auto .cap { display:flex; align-items:center; gap:6px; flex:none; font-size:12px; color:var(--muted); }
+  .auto .cap .step { display:flex; border:1px solid #ccc; border-radius:6px; overflow:hidden; }
+  .auto .cap button { background:#fff; color:var(--ink); border:0; padding:5px 10px; font-size:14px; line-height:1; border-radius:0; }
+  .auto .cap button:hover { background:#f0f0f0; }
+  .auto .cap input { width:42px; border:0; border-left:1px solid #ccc; border-right:1px solid #ccc; text-align:center;
+                     font:inherit; font-size:14px; font-weight:600; color:var(--ink); -moz-appearance:textfield; appearance:textfield; }
+  .auto .cap input::-webkit-inner-spin-button, .auto .cap input::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
+  .auto .cap.saved input { background:#eaf7ed; }
   .auto-log { display:none; background:#111; color:#d8d8d8; font-size:12px; line-height:1.5; margin:-8px 0 24px;
               padding:14px 18px; border-radius:12px; max-height:260px; overflow:auto; white-space:pre-wrap; }
   .auto-log.open { display:block; }
@@ -52,7 +60,13 @@
   .post .body { padding:12px 14px 14px; display:flex; flex-direction:column; gap:8px; flex:1; }
   .post .title { font-weight:600; font-size:14px; line-height:1.35; }
   .post .meta { color:var(--muted); font-size:12px; }
-  .post .intro, .post .tags { font-size:13px; line-height:1.45; color:#333; background:#fafafa; border-left:3px solid var(--red); padding:8px 10px; border-radius:0 6px 6px 0; }
+  /* green = live on Instagram, yellow = not on Instagram (yet) - renderIg() keeps it current */
+  .post.live { background:#dcf2e1; border:2px solid #3fa557; }
+  .post.notlive { background:#fff0bf; border:2px solid #dcaa16; }
+  .legend { float:right; font-weight:400; font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px; }
+  .legend i { display:inline-block; width:12px; height:12px; border-radius:3px; }
+  .legend i.live { background:#dcf2e1; border:2px solid #3fa557; } .legend i.notlive { background:#fff0bf; border:2px solid #dcaa16; margin-left:8px; }
+  .post .intro, .post .tags { font-size:13px; line-height:1.45; color:#333; background:rgba(255,255,255,.7); border-left:3px solid var(--red); padding:8px 10px; border-radius:0 6px 6px 0; }
   .post .tags { border-left-color:#e6a800; }
   .post .intro .lbl, .post .tags .lbl { display:flex; justify-content:space-between; align-items:center; gap:6px; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin-bottom:4px; }
   .post .intro button, .post .tags button { background:none; border:1px solid #ccc; border-radius:5px; padding:2px 8px; font:inherit; font-size:11px; cursor:pointer; text-transform:none; letter-spacing:0; }
@@ -74,7 +88,7 @@
   .why td.n { white-space:nowrap; } .why td.s { text-align:right; font-variant-numeric:tabular-nums; }
   .why small { color:var(--muted); }
   .why .box button { padding:7px 14px; font-size:13px; }
-  .post .ig { font-size:13px; line-height:1.45; color:#333; background:#fafafa; border-left:3px solid #c13584; padding:8px 10px; border-radius:0 6px 6px 0; }
+  .post .ig { font-size:13px; line-height:1.45; color:#333; background:rgba(255,255,255,.7); border-left:3px solid #c13584; padding:8px 10px; border-radius:0 6px 6px 0; }
   .post .ig .lbl { display:flex; justify-content:space-between; align-items:center; gap:6px; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin-bottom:4px; }
   .post .ig .st { font-weight:600; }
   .post .ig .st.published { color:#1a7f37; } .post .ig .st.failed { color:#8a0000; } .post .ig .st.busy { color:var(--muted); }
@@ -199,6 +213,14 @@
       <button type="button" id="mode-post" onclick="setMode(true)">Create &amp; post</button>
       <button type="button" id="mode-only" onclick="setMode(false)">Create only</button>
     </span>
+    <span class="cap" id="auto-cap" title="The most posts the autopilot publishes to Instagram per day. Posts you send with the button are not counted.">
+      Daily limit
+      <span class="step">
+        <button type="button" onclick="stepCap(-1)" aria-label="Lower the daily limit">−</button>
+        <input type="number" id="cap" min="1" max="50" value="10" onchange="saveCap()" aria-label="Posts per day">
+        <button type="button" onclick="stepCap(1)" aria-label="Raise the daily limit">+</button>
+      </span>
+    </span>
     <button type="button" class="btn-ghost btn-sm" id="auto-btn" onclick="toggleAuto()">Pause</button>
     <button type="button" class="btn-ghost btn-sm" onclick="document.getElementById('auto-log').classList.toggle('open')">Log</button>
   </div>
@@ -229,7 +251,7 @@
     <div class="results">
       {% for r in results %}
         {% if r.ok %}
-        <div class="post">
+        <div class="post {{ 'live' if r.instagram.live else 'notlive' }}">
           <a href="{{ url_for('output_file', filename=r.file) }}" target="_blank">
             <img src="{{ url_for('output_file', filename=r.file) }}" alt="">
           </a>
@@ -266,10 +288,11 @@
 
   {% if gallery %}
   <div class="card">
-    <h2>Previous posts <span class="hint">({{ gallery|length }})</span></h2>
+    <h2>Previous posts <span class="hint">({{ gallery|length }})</span>
+      <span class="legend"><i class="live"></i>live on Instagram <i class="notlive"></i>not posted yet</span></h2>
     <div class="gallery">
       {% for g in gallery %}
-      <div class="post">
+      <div class="post {{ 'live' if g.instagram.live else 'notlive' }}">
         <a href="{{ url_for('output_file', filename=g.file) }}" target="_blank">
           <img src="{{ url_for('output_file', filename=g.file) }}" alt="" loading="lazy">
         </a>
@@ -327,6 +350,9 @@
       st.innerHTML += '<div class="reason">Not ready: ' + esc(ig.not_ready) + ' — re-generate this post from its article link.</div>';
       row.innerHTML = '<span class="hint">Cannot post — ' + esc(ig.not_ready) + '</span>';
     }
+    const card = box.closest('.post');
+    card.classList.toggle('live', !!ig.live);
+    card.classList.toggle('notlive', !ig.live);
   }
   async function cancelQueued(btn) {
     const box = btn.closest('.ig'), file = box.dataset.file;
@@ -356,10 +382,11 @@
     else { st.innerHTML = '<div class="st failed">Status: Failed</div><div class="reason">Reason: ' + esc(data.error || 'unknown error') + '</div>'; btn.disabled = false; }
   }
   // ---- autopilot strip: live status, and reload the page when it has made/posted something ----
-  let autoVersion = null, autoBusy = false;
+  let autoVersion = null, autoBusy = false, autoLocal = false;
   async function refreshAuto() {
     let s;
     try { s = await (await fetch('/autopilot/status')).json(); } catch (e) { return; }
+    autoLocal = !!s.local;
     const box = document.getElementById('auto');
     box.className = 'auto' + (!s.running ? ' off' : (!s.enabled ? ' paused' : (s.current !== 'idle' ? ' live' : '')));
     document.getElementById('auto-head').textContent =
@@ -375,12 +402,16 @@
     if (s.next_publish && s.enabled) bits.push('holding a post until ' + s.next_publish);
     if (s.queued) bits.push(s.queued + ' post' + (s.queued > 1 ? 's' : '') + ' queued to Instagram (2–3 min apart)' + (s.queue_next ? ', next at about ' + s.queue_next : ''));
     if (s.only_today) bits.push("today's articles only");
+    if (s.local) bits.push('local copy on this PC — auto-posting is off every time it starts');
     if (s.config_error) bits.push('⚠ ' + s.config_error);
     else if (s.last_error) bits.push('⚠ ' + s.last_error);
     document.getElementById('auto-sub').textContent = bits.join(' · ');
     document.getElementById('auto-gen').textContent = s.generated_today || 0;
-    document.getElementById('auto-pub').textContent = s.published_today || 0;
+    document.getElementById('auto-pub').textContent = (s.published_today || 0) + (s.max_per_day ? ' / ' + s.max_per_day : '');
     document.getElementById('auto-fail').textContent = s.failed || 0;
+    const cap = document.getElementById('cap');
+    if (s.cap_min) { cap.min = s.cap_min; cap.max = s.cap_max; }
+    if (s.max_per_day && capTimer === null && document.activeElement !== cap) cap.value = s.max_per_day;
     document.getElementById('auto-btn').textContent = s.enabled ? 'Pause' : 'Resume';
     const log = document.getElementById('auto-log');
     if (s.log && s.log.length) { const stick = log.scrollTop + log.clientHeight >= log.scrollHeight - 20;
@@ -397,10 +428,37 @@
     refreshAuto();
   }
   async function setMode(post) {
-    if (post && !confirm('Create & post: every new article will be published to Instagram by itself, one post per slot. Switch on?')) return;
+    if (post && !confirm(autoLocal
+        ? 'This is the LOCAL copy on this PC. The server is already posting automatically, so switching this on here can put the same stories on Instagram twice. Switch on anyway?'
+        : 'Create & post: every new article will be published to Instagram by itself, one post per slot. Switch on?')) return;
     for (const b of document.querySelectorAll('#auto-mode button')) b.disabled = true;
     try { await fetch('/autopilot/mode', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({post})}); }
     finally { for (const b of document.querySelectorAll('#auto-mode button')) b.disabled = false; }
+    refreshAuto();
+  }
+  // ---- daily limit: − / + (saved a moment after the last click) or type a number ----
+  let capTimer = null;
+  function stepCap(d) {
+    const cap = document.getElementById('cap');
+    cap.value = Math.min(+cap.max, Math.max(+cap.min, (parseInt(cap.value, 10) || 0) + d));
+    clearTimeout(capTimer);
+    capTimer = setTimeout(saveCap, 700);
+  }
+  async function saveCap() {
+    clearTimeout(capTimer);
+    capTimer = 'saving';   // keeps refreshAuto() from writing the old value back meanwhile
+    const cap = document.getElementById('cap'), n = parseInt(cap.value, 10);
+    if (!n) { capTimer = null; refreshAuto(); return; }
+    try {
+      const r = await (await fetch('/autopilot/cap', {method: 'POST', headers: {'Content-Type': 'application/json'},
+                                                      body: JSON.stringify({max_per_day: n})})).json();
+      if (r.ok) {
+        cap.value = r.max_per_day;
+        const box = document.getElementById('auto-cap');
+        box.classList.add('saved'); setTimeout(() => box.classList.remove('saved'), 1200);
+      }
+    } catch (e) {}
+    capTimer = null;
     refreshAuto();
   }
   refreshAuto();

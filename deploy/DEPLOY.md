@@ -70,7 +70,7 @@ Stop the dashboard on the PC first. Then copy these from the PC's project folder
 |---|---|
 | `seen_urls.json` | Without it the server treats every story currently in the sitemap as new. |
 | `meta/` and `output/` | Publish history: the duplicate guards and the 2–3 min gap read it from here. |
-| `autopilot_mode.json`, `autopost_state.json` | The chosen mode (Create only / Create & post) and today's counters. |
+| `autopilot_mode.json`, `autopost_state.json` | The chosen mode (Create only / Create & post) + daily limit, and today's counters. |
 
 ```bash
 sudo chown -R nbauto:nbauto /opt/nb-automation

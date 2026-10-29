@@ -85,8 +85,23 @@ The choice takes effect immediately, is remembered across restarts (`autopilot_m
 posts made in *Create only* mode stay yours: switching back to *Create & post* later never sends
 them out behind your back.
 
+**Running it on a PC for testing** (`python app.py` / `start_dashboard.bat`): it always starts in
+*Create only*, whatever was saved, because the server at automation.newsband.in is the copy that
+auto-posts and a second one would put every story on Instagram twice. The strip says "local copy";
+switching to *Create & post* there asks for an extra confirmation, and the next restart (any code
+edit) turns it off again. The **Post to Instagram** button on a card still publishes if you click it.
+
+Next to the mode switch, **Daily limit** (− / +, or type a number, 1–50) sets how many posts the
+autopilot may publish per day; *posted today* shows it as e.g. `4 / 10`. It applies immediately
+and is remembered. Lowering it below what is already queued takes the newest autopilot posts back
+out of the queue (they stay in the gallery, unposted); raising it lets posts the old limit held back
+go out from the next check. Posts you publish with the button are not counted.
+
+Gallery cards are tinted **green** when the post is live on Instagram and **yellow** when it is not
+(not posted, queued, or failed).
+
 Safety rails, since this posts to a live account unattended: only today's articles are eligible,
-at most 10 articles are rendered per check, 10 posts are published per day, and posts go out
+at most 10 articles are rendered per check, no more than the daily limit (default 10) is published per day, and posts go out
 one at a time through the same queue as the Post button, 2–3 minutes apart; a story that is already
 published (by the autopilot or by your own button) is never posted twice, and an article that
 fails is recorded as handled so it cannot loop. Everything it makes appears in the gallery like
@@ -97,8 +112,8 @@ was working on is finished off the next time it starts - posts it made today but
 are published then. Posts you made yourself from the form are never published automatically.
 
 Turn any of it off in `.env` (`NB_AUTOPILOT=0` starts paused, `NB_AUTOPOST=0` starts in *Create
-only* mode until a mode is picked on the dashboard, `NB_POLL_INTERVAL`, `NB_MAX_PER_DAY`, ...),
-then restart the dashboard.
+only* mode until a mode is picked on the dashboard, `NB_POLL_INTERVAL`, `NB_MAX_PER_DAY` until a
+daily limit is set on the dashboard, ...), then restart the dashboard.
 
 Running the poller on its own instead of inside the dashboard:
 

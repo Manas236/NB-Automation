@@ -47,12 +47,13 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SITEMAP_URL = "https://www.newsband.in/news-sitemap.php"
 STATE_PATH = os.path.join(BASE_DIR, "seen_urls.json")
 DAY_STATE_PATH = os.path.join(BASE_DIR, "autopost_state.json")
-MODE_PATH = os.path.join(BASE_DIR, "autopilot_mode.json")   # the dashboard's create-only / create+post choice
+MODE_PATH = os.path.join(BASE_DIR, "autopilot_mode.json")   # the dashboard's mode choice + daily limit
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) NewsbandPostBot/1.0"}
 TIMEOUT = 30
 DEFAULT_INTERVAL = 15 * 60   # matches Cloudflare's Cache-Control: max-age=1800 on the sitemap
 MAX_PER_POLL = 10            # how many new articles are *rendered* per pass (publishing is paced)
-MAX_PER_DAY = 10             # hard stop for a day's automatic publishing
+MAX_PER_DAY = 10             # hard stop for a day's automatic publishing (default - the dashboard can change it)
+DAY_CAP_RANGE = (1, 50)      # what the dashboard's daily-limit control allows; Instagram's own limit is 100/24h
 MIN_PUBLISH_GAP = 30 * 60    # standalone CLI only: seconds between two publishes (see QUEUE)
 PUBLISH_JITTER = 5 * 60      # random extra wait on top, so the cadence is not machine-regular
 
@@ -72,6 +73,7 @@ STATUS = {
     "running": False,        # is the thread alive?
     "posting": True,         # does it publish to Instagram, or only generate?
     "only_today": True,
+    "max_per_day": MAX_PER_DAY,
     "interval": DEFAULT_INTERVAL,
     "current": "idle",
     "last_poll": "",
@@ -91,6 +93,7 @@ ENABLED = threading.Event()  # cleared = paused (the dashboard's Pause button)
 ENABLED.set()
 POSTING = threading.Event()  # set = create AND publish; cleared = create only, the owner publishes
 POSTING.set()
+_day_cap = MAX_PER_DAY       # the live daily cap: Options.max_per_day reads it, set_day_cap() changes it
 
 
 def log(msg):
@@ -221,14 +224,57 @@ def record_publish(ok):
     bump_version()
 
 
+_SETTINGS_LOCK = threading.Lock()
+
+
+def load_settings():
+    """What was last chosen on the dashboard: {"post": bool, "max_per_day": int}, either key
+    possibly missing (never chosen - then .env decides)."""
+    try:
+        with open(MODE_PATH, encoding="utf-8") as fh:
+            data = json.load(fh)
+    except (OSError, ValueError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def save_settings(**fields):
+    with _SETTINGS_LOCK:
+        data = load_settings()
+        data.update(fields)
+        with open(MODE_PATH, "w", encoding="utf-8") as fh:
+            json.dump(data, fh)
+
+
 def load_mode():
     """The mode last chosen on the dashboard (True = create + post, False = create only), or
     None if it was never set - then the NB_AUTOPOST switch in .env decides."""
+    post = load_settings().get("post")
+    return None if post is None else bool(post)
+
+
+def clamp_day_cap(n):
+    return max(DAY_CAP_RANGE[0], min(DAY_CAP_RANGE[1], int(n)))
+
+
+def load_day_cap():
+    """The daily cap last chosen on the dashboard, or None - then NB_MAX_PER_DAY decides."""
     try:
-        with open(MODE_PATH, encoding="utf-8") as fh:
-            return bool(json.load(fh).get("post"))
-    except (OSError, ValueError, AttributeError):
+        return clamp_day_cap(load_settings()["max_per_day"])
+    except (KeyError, TypeError, ValueError):
         return None
+
+
+def set_day_cap(n):
+    """The dashboard's daily-limit control. Applies from the next publish decision and is
+    persisted like the mode. Returns the value actually stored (clamped to DAY_CAP_RANGE)."""
+    global _day_cap
+    n = clamp_day_cap(n)
+    _day_cap = n
+    save_settings(max_per_day=n)
+    set_status(max_per_day=n)
+    log(f"daily publish limit set to {n} from the dashboard")
+    return n
 
 
 def set_mode(post):
@@ -239,8 +285,7 @@ def set_mode(post):
         POSTING.set()
     else:
         POSTING.clear()
-    with open(MODE_PATH, "w", encoding="utf-8") as fh:
-        json.dump({"post": bool(post)}, fh)
+    save_settings(post=bool(post))
     set_status(posting=bool(post))
     log("mode: create + post to Instagram automatically" if post
         else "mode: create only - new posts wait in the gallery for you to publish them")
@@ -464,6 +509,16 @@ class Options:
         else:
             POSTING.clear()
 
+    # the same for the daily cap: the dashboard's daily-limit control changes it mid-run
+    @property
+    def max_per_day(self):
+        return _day_cap
+
+    @max_per_day.setter
+    def max_per_day(self, value):
+        global _day_cap
+        _day_cap = int(value)
+
 
 def pending_posts():
     """Posts this poller rendered today but never got as far as publishing - the thread is
@@ -531,7 +586,7 @@ def run_forever(opts=None, stop=None):
     opts = opts or Options()
     stop = stop or threading.Event()
     set_status(running=True, posting=opts.post, only_today=opts.only_today, interval=opts.interval,
-               enabled=ENABLED.is_set())
+               enabled=ENABLED.is_set(), max_per_day=opts.max_per_day)
     day = load_day_state()
     log(f"autopilot started - polling every {opts.interval // 60} min, "
         f"{'publishing to Instagram' if opts.post else 'generating posts only'}, "

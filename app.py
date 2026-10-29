@@ -142,6 +142,7 @@ _queue = []                      # filenames in click order; [0] is the one bein
 _queue_force = {}                # filename -> force flag it was queued with
 _queue_due = {}                  # filename -> "HH:MM" the worker plans to send it (head only)
 _queue_auto = set()              # filenames the autopilot queued (counted against its daily cap)
+_queue_sending = None            # the filename publish_post() is working on right now, if any
 _queue_lock = threading.Lock()
 _queue_wake = threading.Event()
 _queue_thread = None
@@ -174,24 +175,27 @@ def enqueue_publish(filename, force, prev, auto=False):
     return meta
 
 
-def unqueue_autopilot(reason):
+def unqueue_autopilot(reason, keep=0, again="when auto-posting resumes"):
     """Pause / Create only: take the autopilot's not-yet-sent posts back out of the queue. They
     keep publish=auto and no Instagram block, so drain_pending() queues them again on resume;
-    posts the owner clicked stay queued."""
+    posts the owner clicked stay queued. `keep` = leave the first that many in (a lowered daily
+    limit). The post being sent right now is never touched - it can't be called back."""
     with _queue_lock:
-        mine = [f for f in _queue if f in _queue_auto]
+        mine = [f for f in _queue if f in _queue_auto][keep:]
+    removed = 0
     for f in mine:
         with _queue_lock:
-            if f not in _queue:
+            if f not in _queue or f == _queue_sending:
                 continue
             _queue.remove(f)
             _queue_force.pop(f, None)
             _queue_due.pop(f, None)
             _queue_auto.discard(f)
         update_meta(f[:-4], instagram={})
-    if mine:
-        autopilot.log(f"{reason}: {len(mine)} autopilot post(s) taken out of the queue - "
-                      f"they are queued again when auto-posting resumes")
+        removed += 1
+    if removed:
+        autopilot.log(f"{reason}: {removed} autopilot post(s) taken out of the queue - "
+                      f"they are queued again {again}")
         autopilot.bump_version()
 
 
@@ -238,10 +242,16 @@ def requeue_from_sidecars():
     if not os.path.isdir(META_DIR):
         return
     waiting = []
+    auto_posting = autopilot.POSTING.is_set() and autopilot.ENABLED.is_set()
     for f in os.listdir(META_DIR):
         if not f.endswith(".json"):
             continue
         ig = load_meta(f[:-5] + ".png").get("instagram") or {}
+        if ig.get("status") == "queued" and ig.get("by") == "autopilot" and not auto_posting:
+            # started paused or in Create only (always, on a local run): what unqueue_autopilot()
+            # would have done, instead of letting the worker send it anyway
+            update_meta(f[:-5], instagram={})
+            continue
         if ig.get("status") == "queued" and os.path.exists(os.path.join(OUT_DIR, f[:-5] + ".png")):
             waiting.append((ig.get("queued_at") or "", f[:-5] + ".png", bool(ig.get("media_id")),
                             ig.get("by") == "autopilot"))
@@ -270,6 +280,7 @@ def queue_worker():
     """Send queued posts one at a time, each at least MIN_API_GAP + random jitter after the last
     Instagram API attempt (manual or autopilot). Every outcome lands in the sidecar exactly as
     a direct button publish did, then the page version is bumped so open dashboards redraw."""
+    global _queue_sending
     while True:
         with _queue_lock:
             filename = _queue[0] if _queue else None
@@ -294,6 +305,7 @@ def queue_worker():
                 continue
             force = _queue_force.get(filename, False)
             auto = filename in _queue_auto
+            _queue_sending = filename
         png_path = os.path.join(OUT_DIR, filename)
         stem = filename[:-4]
         who = "autopilot" if auto else "manual"
@@ -305,6 +317,8 @@ def queue_worker():
                           f"{result.get('permalink') or ''}")
         except insta.PacingError as e:          # the autopilot got in first: wait again
             autopilot.log(f"HOLD {filename}: {e}")
+            with _queue_lock:
+                _queue_sending = None
             continue
         except insta.IncompleteError as e:      # lost its caption since it was queued
             update_meta(stem, instagram={})     # back to "not posted", with the reason on the card
@@ -323,6 +337,7 @@ def queue_worker():
         with _queue_lock:
             if _queue and _queue[0] == filename:
                 _queue.pop(0)
+            _queue_sending = None
             _queue_force.pop(filename, None)
             _queue_due.pop(filename, None)
             _queue_auto.discard(filename)
@@ -377,26 +392,39 @@ def instagram_cancel(filename):
 # whole pipeline: sitemap -> scrape -> render -> publish -> the cards below.
 
 _autopilot_stop = threading.Event()
+LOCAL = False   # True when started with `python app.py` (a PC), False under wsgi.py (the server)
 
 
-def autopilot_options():
-    """Settings for the background poller, all overridable from the environment."""
+def autopilot_options(local=False):
+    """Settings for the background poller, all overridable from the environment. A local run
+    always starts in Create only, whatever was saved: the server is the one that auto-posts,
+    and a second copy posting on a PC would put every story on Instagram twice."""
     saved_mode = autopilot.load_mode()   # the mode picked on the dashboard sticks across restarts
+    saved_cap = autopilot.load_day_cap()  # so does the daily limit
+    if local:
+        post = False
+    elif saved_mode is not None:
+        post = saved_mode
+    else:
+        post = os.environ.get("NB_AUTOPOST", "1").strip().lower() not in ("0", "false", "no", "off")
     return autopilot.Options(
         interval=int(os.environ.get("NB_POLL_INTERVAL", autopilot.DEFAULT_INTERVAL)),
-        post=saved_mode if saved_mode is not None else
-             os.environ.get("NB_AUTOPOST", "1").strip().lower() not in ("0", "false", "no", "off"),
+        post=post,
         only_today=os.environ.get("NB_TODAY_ONLY", "1").strip().lower() not in ("0", "false", "no", "off"),
         max_per_poll=int(os.environ.get("NB_MAX_PER_POLL", autopilot.MAX_PER_POLL)),
-        max_per_day=int(os.environ.get("NB_MAX_PER_DAY", autopilot.MAX_PER_DAY)),
+        max_per_day=saved_cap if saved_cap is not None else
+                    int(os.environ.get("NB_MAX_PER_DAY", autopilot.MAX_PER_DAY)),
         min_gap=int(os.environ.get("NB_MIN_GAP_MINUTES",
                                    autopilot.MIN_PUBLISH_GAP // 60)) * 60,
     )
 
 
-def start_autopilot():
+def start_autopilot(local=False):
     """Start the poll loop once, in the process that actually serves requests."""
-    opts = autopilot_options()
+    opts = autopilot_options(local)
+    if local:
+        autopilot.log("local run - started in Create only, nothing is posted automatically "
+                      "(the server does the posting)")
     if os.environ.get("NB_AUTOPILOT", "1").strip().lower() in ("0", "false", "no", "off"):
         autopilot.ENABLED.clear()      # thread still runs, but paused - the UI can resume it
     t = threading.Thread(target=autopilot.run_forever, args=(opts, _autopilot_stop),
@@ -408,20 +436,23 @@ def start_autopilot():
 _background_started = False
 
 
-def start_background():
+def start_background(local=False):
     """Start the autopilot + publish-queue threads. Exactly once per process, and only in the
     process that serves requests: the dev server's reloader child (below) or the single
-    gunicorn worker (wsgi.py). Two copies would race over seen_urls.json and double-post."""
-    global _background_started
+    gunicorn worker (wsgi.py). Two copies would race over seen_urls.json and double-post.
+    `local` = the dev server on a PC: starts in Create only (see autopilot_options)."""
+    global _background_started, LOCAL
     if _background_started:
         return None
     _background_started = True
+    LOCAL = local
     os.makedirs(OUT_DIR, exist_ok=True)
     autopilot.QUEUE = autopilot_enqueue   # Create & post feeds the dashboard's publish queue
-    opts = start_autopilot()
+    opts = start_autopilot(local)
     requeue_from_sidecars()   # manual publishes still waiting when the last process died
     print(f"  autopilot: polling every {opts.interval // 60} min, "
           f"{'auto-posting to Instagram' if opts.post else 'generating posts only'}"
+          f"{' (local run: auto-posting always starts off)' if local else ''}"
           f"{'' if autopilot.ENABLED.is_set() else ' (PAUSED)'}\n", flush=True)
     return opts
 
@@ -439,6 +470,8 @@ def autopilot_status():
     st["generated_today"] = day.get("generated", 0)
     st["configured"] = insta.is_configured()
     st["config_error"] = insta.configuration_error()
+    st["local"] = LOCAL
+    st["cap_min"], st["cap_max"] = autopilot.DAY_CAP_RANGE
     with _queue_lock:                          # the publish queue (manual + autopilot), for the strip
         st["queued"] = len(_queue)
         st["queue_next"] = _queue_due.get(_queue[0], "") if _queue else ""
@@ -474,6 +507,23 @@ def autopilot_mode():
     return jsonify(ok=True, posting=autopilot.POSTING.is_set())
 
 
+@app.route("/autopilot/cap", methods=["POST"])
+def autopilot_cap():
+    """The strip's daily-limit control: {"max_per_day": n} = the most posts the autopilot may
+    publish per IST day (manual clicks are not counted). Takes effect immediately and is
+    remembered. Lowered below what is already queued, the newest autopilot posts come back out
+    of the queue; raised, posts held back by the old limit are queued on the next check."""
+    body = request.get_json(silent=True) or {}
+    try:
+        n = autopilot.set_day_cap(body.get("max_per_day", request.form.get("max_per_day")))
+    except (TypeError, ValueError):
+        return jsonify(ok=False, error="the daily limit must be a whole number"), 400
+    room = max(0, n - autopilot.load_day_state().get("published", 0))
+    unqueue_autopilot(f"daily limit lowered to {n}", keep=room,
+                      again="if the limit is raised again today")
+    return jsonify(ok=True, max_per_day=n)
+
+
 def instagram_view(meta, filename=None):
     """Shape the sidecar's instagram block for the card. Always returns a dict so every card
     shows the Instagram section; `configured` tells the template whether the button is live.
@@ -482,7 +532,9 @@ def instagram_view(meta, filename=None):
     problem = insta.caption_problem(meta)
     return {
         "status": i.get("status") or "not_posted",       # not_posted | queued | published | failed
-        "ready": not problem,                            # has a first line and hashtags to caption it
+        # on Instagram right now: published, or a repost queued/failed while the earlier one stays up
+        "live": i.get("status") == "published" or bool(i.get("media_id")),
+        "ready": not problem,                           # has a first line and hashtags to caption it
         "not_ready": problem,                            # why it cannot be posted yet
         "queue_pos": queue_position(filename) if filename else 0,
         "due": _queue_due.get(filename, "") if filename else "",
@@ -570,7 +622,8 @@ if __name__ == "__main__":
     else:
         # Only in the reloader's child: the parent just watches files, and two autopilot loops
         # would race each other over seen_urls.json and publish the same article twice.
-        start_background()
+        # local=True: this is a PC, the server does the posting - start in Create only.
+        start_background(local=True)
     # host 0.0.0.0 = reachable from other machines on the network (no login - trusted LAN only)
     # use_reloader: picks up edits to make_post.py / scrape_post.py without a manual restart.
     # reloader_type="stat" (mtime polling), NOT the default watchdog: this PC has NTFS
