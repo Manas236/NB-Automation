@@ -457,6 +457,30 @@ def start_background(local=False):
     return opts
 
 
+def _today_counts():
+    """(posts published to Instagram today, autopilot posts made today still waiting for the
+    owner) - read from the sidecars, so both the autopilot and the Publish button count."""
+    today = time.strftime("%Y-%m-%d")
+    posted = waiting = 0
+    if not os.path.isdir(META_DIR):
+        return posted, waiting
+    for f in os.listdir(META_DIR):
+        if not f.endswith(".json"):
+            continue
+        try:
+            with open(os.path.join(META_DIR, f), encoding="utf-8") as fh:
+                meta = json.load(fh)
+        except (OSError, ValueError):
+            continue
+        ig = meta.get("instagram") or {}
+        if ig.get("status") == "published":
+            posted += str(ig.get("published_at") or "").startswith(today)
+        elif (meta.get("source") == "autopilot" and ig.get("status") != "queued"
+              and str(meta.get("created") or "").startswith(today)):
+            waiting += 1
+    return posted, waiting
+
+
 @app.route("/autopilot/status")
 def autopilot_status():
     """Live state for the strip at the top of the page (polled by the browser)."""
@@ -466,8 +490,10 @@ def autopilot_status():
     # itself - otherwise the strip keeps saying "on" for a quarter of an hour after Pause
     st["enabled"] = autopilot.ENABLED.is_set()
     st["posting"] = autopilot.POSTING.is_set()
-    st["published_today"] = day.get("published", 0)
     st["generated_today"] = day.get("generated", 0)
+    # "posted today" = everything that went out today, the owner's own button presses included
+    # (the day-state counter only counts autopilot publishes, because it feeds the daily cap)
+    st["published_today"], st["waiting_today"] = _today_counts()
     st["configured"] = insta.is_configured()
     st["config_error"] = insta.configuration_error()
     st["local"] = LOCAL

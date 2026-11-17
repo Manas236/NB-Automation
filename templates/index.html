@@ -207,6 +207,7 @@
     <span class="counts">
       <span><b id="auto-gen">0</b>made today</span>
       <span><b id="auto-pub">0</b>posted today</span>
+      <span title="Made today but not on Instagram - over the daily cap, create-only mode or failed. Publish them from the gallery if you want them out."><b id="auto-wait">0</b>waiting for you</span>
       <span><b id="auto-fail">0</b>failed</span>
     </span>
     <span class="mode" id="auto-mode" title="What the autopilot does with a new article">
@@ -408,6 +409,7 @@
     document.getElementById('auto-sub').textContent = bits.join(' · ');
     document.getElementById('auto-gen').textContent = s.generated_today || 0;
     document.getElementById('auto-pub').textContent = (s.published_today || 0) + (s.max_per_day ? ' / ' + s.max_per_day : '');
+    document.getElementById('auto-wait').textContent = s.waiting_today || 0;
     document.getElementById('auto-fail').textContent = s.failed || 0;
     const cap = document.getElementById('cap');
     if (s.cap_min) { cap.min = s.cap_min; cap.max = s.cap_max; }

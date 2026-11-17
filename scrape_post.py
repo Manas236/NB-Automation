@@ -139,6 +139,28 @@ def article_body(soup, headline=""):
     return dateline, paragraphs, category
 
 
+SITE_SUFFIX_RE = re.compile(r"\s*[|\-–—:]\s*News\s*band(?:\.in)?\s*$", re.I)
+
+
+def strip_site_suffix(title):
+    """'Alcaraz battles ... | Newsband' -> 'Alcaraz battles ...'."""
+    return SITE_SUFFIX_RE.sub("", (title or "").strip()).strip()
+
+
+def jsonld_headline(soup):
+    """headline from the page's NewsArticle JSON-LD block, '' if absent/unparseable."""
+    import json
+    for sc in soup.find_all("script", type="application/ld+json"):
+        try:
+            data = json.loads(sc.string or "")
+        except ValueError:
+            continue
+        for d in (data if isinstance(data, list) else [data]):
+            if isinstance(d, dict) and d.get("headline"):
+                return str(d["headline"]).strip()
+    return ""
+
+
 def scrape_article(url):
     """Return (headline, image_url, intro) for a newsband.in article page."""
     a = scrape_article_full(url)
@@ -164,12 +186,19 @@ def scrape_article_full(url):
     if not image_url:
         raise ValueError("could not find the main image")
 
-    # the headline is the <h2> just above the photo; og:title as backup
-    h2 = img.find_previous("h2") if img else soup.select_one(".maan-title-text h2")
-    headline = h2.get_text(" ", strip=True) if h2 else ""
+    # The headline sits just above the photo: <h1 class="nb-article-h1"> since 14 Nov 2026,
+    # a plain <h2> before that. Backups: JSON-LD headline, then og:title - but <title>/og:title
+    # carry a " | Newsband" site suffix, which ended up printed on posts when the site moved
+    # from <h2> to <h1> and only og:title matched. strip_site_suffix() guards every source.
+    tag = (soup.select_one(".maan-title-text h1, .maan-title-text h2")
+           or (img.find_previous(["h1", "h2"]) if img else None))
+    headline = tag.get_text(" ", strip=True) if tag else ""
+    if not headline:
+        headline = jsonld_headline(soup)
     if not headline:
         og = soup.find("meta", property="og:title")
         headline = og["content"].strip() if og and og.get("content") else ""
+    headline = strip_site_suffix(headline)
     if not headline or headline.lower() == "newsband":
         raise ValueError("could not find the headline")
 
