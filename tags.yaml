@@ -38,6 +38,12 @@ config:
     "Environment":       ["#Environment"]
     "Health":            ["#Health"]
     "Technology":        ["#Technology"]
+    # the site's current labels for the same sections
+    "Health & Wellness":  ["#Health"]
+    "AI & Technology":    ["#Technology"]
+    "Business & Finance": ["#Business"]
+    "Culture":            ["#Culture"]
+    "Other Sports":       ["#Sports"]
 
   # Descriptive references. Resolution order (first that applies):
   #   1. exactly one entry with the matching `role` is explicitly named in the article
@@ -367,7 +373,7 @@ tags:
      triggers: ["power cut", "power cuts", "power outage", "electricity", "load shedding", "power supply", "transformer", "electric shock", "electrocuted"],
      description: "Electricity: power cuts, outages, MSEDCL supply, transformers, electrocution"}
   - {tag: "#Elections", type: topic, parent: "#Politics",
-     triggers: ["election", "elections", "polls", "voting", "voters", "candidate", "candidates", "ballot", "ward reservation", "civic polls", "civic elections", "municipal elections", "campaign", "manifesto"],
+     triggers: ["election", "elections", "polls", "voting", "voters", "candidate", "candidates", "ballot", "ward reservation", "civic polls", "civic elections", "municipal elections", "election campaign", "election campaigning", "poll campaign", "poll campaigning", "manifesto"],
      description: "Elections: civic polls, candidates, campaigns, voting, results, ward reservations"}
   - {tag: "#Protest", type: topic, parent: "#Politics",
      triggers: ["protest", "protests", "protested", "protesters", "agitation", "morcha", "demonstration", "dharna", "rasta roko", "strike", "bandh", "andolan", "hunger strike", "indefinite fast", "fast unto death"],

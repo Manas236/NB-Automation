@@ -206,6 +206,7 @@ class Catalogue:
         self.config = data.get("config") or {}
         self.entries = {}
         self.patterns = []   # (regex, target, kind)  kind: alias|weak_alias|trigger|weak_trigger
+        self.plain_triggers = set()   # lower-case trigger words ("theft"), see in_proper_name()
         for e in data["tags"]:
             tag = e["tag"]
             if not re.fullmatch(r"#[A-Za-z0-9_]+", tag):
@@ -219,6 +220,8 @@ class Catalogue:
                 self.patterns.append((_alias_regex(a), tag, "trigger"))
             for a in e.get("weak_triggers", []):
                 self.patterns.append((_alias_regex(a), tag, "weak_trigger"))
+            self.plain_triggers |= {a.lower() for a in e.get("triggers", []) + e.get("weak_triggers", [])
+                                    if a == a.lower()}
         for tag, e in self.entries.items():
             p = e.get("parent")
             if p and p not in self.entries:
@@ -390,6 +393,22 @@ def looks_like_person(name):
     return all(t[:1].isupper() and re.fullmatch(r"[A-Za-z.'’-]+", t) for t in toks)
 
 
+def in_proper_name(doc, start, end):
+    """True when the matched words sit inside a capitalised name in running text: 'Grand
+    Theft Auto', 'Civil and Criminal Court', 'Crime Branch'. A topic trigger there is part
+    of a title or an institution's name, not evidence of what the story is about. Body and
+    lede only; headlines are often title-cased, so capitals there say nothing."""
+    sp = doc.char_span(start, end, alignment_mode="expand")
+    if sp is None:
+        return False
+    cap = lambda t: t.is_alpha and t.text[:1].isupper()
+    if not cap(sp[0]):
+        return False
+    prev = doc[sp.start - 1] if sp.start > 0 else None
+    nxt = doc[sp.end] if sp.end < len(doc) else None
+    return bool((prev is not None and not sp[0].is_sent_start and cap(prev)) or (nxt is not None and cap(nxt)))
+
+
 def other_given_name(doc, start, own):
     """True when the surname at `start` follows a given name that is not the catalogue
     person's own: 'Sahil Mhaske' is not #NareshMhaske. Titles ('MP Mhaske') and ordinary
@@ -450,6 +469,7 @@ def suggest(article, cat=None):
     # name is in the story, its bare mentions are that other person too. Those matches are
     # skipped entirely, so they neither become evidence nor claim the span from NER.
     matches = cat.find_matches(text)
+    site_tags = set(cat.category_map.get((article.category or "").strip().lower(), []))
     other_people = set()
     for start, end, mtext, target, kind in matches:
         if kind == "weak_alias" and cat.type_of(target) == "person":
@@ -460,8 +480,13 @@ def suggest(article, cat=None):
     for start, end, mtext, target, kind in matches:
         if kind == "weak_alias" and (target, mtext.lower()) in other_people:
             continue
-        used.append((start, end))
         z = zone_of(start)
+        if (kind in ("trigger", "weak_trigger") and z != "headline"
+                and target not in site_tags
+                and re.sub(r"['’]s$", "", mtext).lower() in cat.plain_triggers
+                and in_proper_name(doc, start, end)):
+            continue     # "Theft" in "Grand Theft Auto" is a title, not a crime (unless the site filed it there)
+        used.append((start, end))
         role = role_of(doc, start, end) if z in ("headline", "lede") else ""
         if kind == "descriptive":
             descriptive_hits.append((target, Span(start, end, mtext, z, role, kind)))
